@@ -1,0 +1,17 @@
+backend
+    - config
+        - db.js
+    - controllers
+        - productController.js
+    - middlewares
+        - errorHandler.js
+    - models
+        - productModel.js
+    - routes
+        - productRoutes.js
+        
+    server.js
+
+
+admin1@local
+123456
