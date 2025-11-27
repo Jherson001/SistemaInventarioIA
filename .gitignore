@@ -1,0 +1,17 @@
+# Entorno Virtual (CRÍTICO)
+.venv/
+venv/
+__pycache__/
+
+# Frontend y dependencias
+node_modules/
+dist/
+build/
+
+# Archivos de sistema y logs
+*.log
+*.sqlite3
+.DS_Store
+
+# Secretos
+.env

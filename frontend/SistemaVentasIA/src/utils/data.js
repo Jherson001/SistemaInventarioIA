@@ -7,6 +7,7 @@ import {
 } from "react-icons/lu";
 
 import { GoPackage } from "react-icons/go";
+import { MdBarChart } from "react-icons/md";
 
 export const SIDE_MENU_DATA = [
   {
@@ -41,18 +42,30 @@ export const SIDE_MENU_DATA = [
   },
   {
     id: "06",
+    label: "Insights",
+    icon: MdBarChart,
+    path: "/admin/insights",
+  },
+  {
+    id: "07",
     label: "Categorías",
     icon: GoPackage,
     path: "/admin/categorias",
   },
   {
-    id: "07",
+    id: "08",
     label: "Customers",
     icon: GoPackage,
     path: "/admin/customers",
   },
   {
-    id: "08",
+    id: "09",
+    label:"Baja rotación",
+    icon: MdBarChart,
+    path: "/admin/low-rotation",
+  },
+  {
+  id: "10",
     label: "Logout",
     icon: LuLogOut,
     path: "logout",
@@ -67,13 +80,13 @@ export const SIDE_MENU_USER_DATA = [
     path: "/user/dashboard",
   },
   {
-    id: "02",
+    id: "03",
     label: "My Tasks",
     icon: LuClipboardCheck,
     path: "/user/tasks",
   },
   {
-    id: "03",
+    id: "04",
     label: "Logout",
     icon: LuLogOut,
     path: "logout",
