@@ -1,43 +1,38 @@
 @echo off
-TITLE SISTEMA DE VENTAS - LAUNCHER
+TITLE SISTEMA DE VENTAS - MODO DIAGNOSTICO
 CLS
 
-:: === CONFIGURACIÓN DE LA RUTA ===
-:: Aquí definimos la ruta exacta de tu proyecto
-SET "PROJECT_ROOT=C:\Users\RYZEN 5 5600X\Modulo-customers-Listo"
+:: 1. DEFINIR LA RUTA RAIZ (Asegurate que esta sea EXACTA)
+SET "PROYECTO=C:\Users\RYZEN 5 5600X\Modulo-customers-Listo"
 
 ECHO ======================================================
-ECHO      INICIANDO SISTEMA DE VENTAS
-ECHO      Ruta: %PROJECT_ROOT%
+ECHO      INICIANDO SISTEMA (MODO VISIBLE)
+ECHO      Ruta base: %PROYECTO%
 ECHO ======================================================
 ECHO.
 
-:: 1. Verificación rápida de MySQL
-netstat -an | find "3306" >nul
-IF ERRORLEVEL 1 (
-    ECHO [ALERTA] No detecto MySQL (XAMPP) corriendo.
-    ECHO Por favor, abre XAMPP y activa "MySQL".
-    PAUSE
-    EXIT
-)
+:: 2. BACKEND
+ECHO [1/3] Lanzando Backend...
+start "BACKEND" cmd /k "cd /d "%PROYECTO%\backend" && npm start"
 
-:: 2. Iniciar Backend (Node.js)
-ECHO [1/3] Iniciando Backend...
-start "BACKEND_API" /min cmd /k "cd /d "%PROJECT_ROOT%\backend" && npm start"
+:: 3. INTELIGENCIA ARTIFICIAL (La parte delicada)
+ECHO [2/3] Lanzando IA (Puerto 8001)...
+:: Aqui usamos la ruta completa al activador para evitar errores
+start "IA_SERVICE" cmd /k "call "%PROYECTO%\.venv\Scripts\activate.bat" && cd /d "%PROYECTO%\ai-service" && uvicorn app.main:app --reload --port 8001"
 
-:: 3. Iniciar AI Service (Python)
-ECHO [2/3] Iniciando Servicio IA...
-:: Activamos el entorno virtual en la raiz y corremos la app
-start "AI_SERVICE" /min cmd /k "call "%PROJECT_ROOT%\.venv\Scripts\activate.bat" && cd /d "%PROJECT_ROOT%\ai-service" && python main.py"
+:: 4. FRONTEND
+ECHO [3/3] Lanzando Frontend...
+start "FRONTEND" cmd /k "cd /d "%PROYECTO%\frontend\SistemaVentasIA" && npm run dev"
 
-:: 4. Iniciar Frontend (React)
-ECHO [3/3] Iniciando Interfaz Web...
-start "FRONTEND_UI" /min cmd /k "cd /d "%PROJECT_ROOT%\frontend" && npm run dev"
-
-:: 5. Abrir Navegador
+:: 5. NAVEGADOR
 ECHO.
-ECHO Todo listo. Abriendo sistema en 5 segundos...
-TIMEOUT /T 5 /NOBREAK >nul
+ECHO Si no ves errores rojos en las ventanas negras,
+ECHO el sistema se abrira en 10 segundos...
+TIMEOUT /T 10
 start http://localhost:5173
 
-EXIT
+ECHO.
+ECHO ======================================================
+ECHO  SI ALGO FALLA, TOMA FOTO A LAS VENTANAS NEGRAS
+ECHO ======================================================
+PAUSE
