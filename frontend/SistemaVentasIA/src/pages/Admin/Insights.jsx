@@ -16,6 +16,14 @@ function StatusBadge({ status }) {
   return <span className={`px-2 py-1 rounded-md text-xs font-semibold ${color}`}>{status || 'N/A'}</span>;
 }
 
+/* ⭐ SE AGREGA ESTE SPINNER EXACTAMENTE COMO LO ENVIASTE */
+const Spinner = () => (
+  <div className="flex flex-col justify-center items-center h-64 space-y-4">
+    <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-blue-600"></div>
+    <p className="text-gray-500 font-medium animate-pulse">Analizando datos con IA...</p>
+  </div>
+);
+
 export default function Insights() {
   const api = useApi();
   const [health, setHealth] = useState([]);
@@ -52,9 +60,17 @@ export default function Insights() {
     <DashboardLayout activeMenu="/admin/insights">
       <div className="max-w-6xl mx-auto p-4 space-y-6">
         <h1 className="text-xl font-semibold">Predicciones de Inventario</h1>
-        {err && <p className="text-red-600 text-sm">{err}</p>}
         
-        {loading ? <p>Cargando...</p> : (
+        {err && (
+          <div className="bg-red-50 text-red-700 p-4 rounded-md border border-red-200">
+            ❌ {err}
+          </div>
+        )}
+
+        {/* ⭐ AQUI USO EL SPINNER NUEVO */}
+        {loading ? (
+          <Spinner />
+        ) : (
           <>
             <section className="card">
               <h2 className="font-semibold mb-3">Semáforo de stock</h2>

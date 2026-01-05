@@ -3,9 +3,10 @@ const { query } = require('../config/db');
 
 const ProductModel = {
   async findAll() {
+    // CORREGIDO: Usamos v.current_stock (la nueva columna)
     const sql = `
       SELECT p.*,
-             COALESCE(v.stock, 0) AS stock
+             COALESCE(v.current_stock, 0) AS stock
       FROM products p
       LEFT JOIN vw_stock_current v ON v.product_id = p.id
       ORDER BY p.created_at DESC;
@@ -14,9 +15,10 @@ const ProductModel = {
   },
 
   async findById(id) {
+    // CORREGIDO: Usamos v.current_stock
     const sql = `
       SELECT p.*,
-             COALESCE(v.stock, 0) AS stock
+             COALESCE(v.current_stock, 0) AS stock
       FROM products p
       LEFT JOIN vw_stock_current v ON v.product_id = p.id
       WHERE p.id = ? LIMIT 1;
@@ -63,7 +65,6 @@ const ProductModel = {
     return await this.findById(id);
   },
 
-  // "Borrado lógico": desactiva el producto
   async remove(id) {
     const sql = `UPDATE products SET is_active = 0, updated_at = NOW() WHERE id = ?;`;
     await query(sql, [id]);
