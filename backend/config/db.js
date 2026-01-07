@@ -36,11 +36,11 @@ function getConnection() {
 
 async function testConnection() {
   try {
-    // ESTA LÍNEA ES LA MAGIA: Desactiva el modo estricto para esta sesión
+    // ESTO DESACTIVA EL MODO ESTRICTO PARA TU SESIÓN
     await query("SET SESSION sql_mode=(SELECT REPLACE(@@sql_mode,'ONLY_FULL_GROUP_BY',''))");
     
     const rows = await query('SELECT 1 + 1 AS result');
-    console.log('✅ Conexión exitosa a Aiven MySQL y SQL_MODE ajustado');
+    console.log('✅ Conexión exitosa y SQL_MODE ajustado');
   } catch (err) {
     console.error('❌ Error crítico en testConnection:', err.message);
   }
