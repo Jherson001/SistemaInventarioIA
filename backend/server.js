@@ -21,7 +21,7 @@ const app = express();
 
 // CORS
 app.use(cors({
-  origin: process.env.CLIENT_URL || '*',
+  origin:'*',
   methods: ['GET','POST','PUT','DELETE'],
   allowedHeaders: ['Content-Type','Authorization']
 }));
@@ -32,15 +32,15 @@ app.use(express.json());
 app.get('/health', (req, res) => res.json({ ok: true }));
 
 // Rutas
-app.use('/products', productRoutes);
-app.use('/auth', authRoutes);
-app.use('/stock-moves', stockMoveRoutes);
-app.use('/sales', saleRoutes);
-app.use('/categories', categoryRoutes);
-app.use('/customers', customerRoutes);
-app.use('/insights', insightsRoutes); 
-app.use('/dashboard', dashboardRoutes);
-app.use('/ai', aiRoutes);                          
+app.use('/api/products', productRoutes);
+app.use('/api/auth', authRoutes);
+app.use('/api/stock-moves', stockMoveRoutes);
+app.use('/api/sales', saleRoutes);
+app.use('/api/categories', categoryRoutes);
+app.use('/api/customers', customerRoutes);
+app.use('/api/insights', insightsRoutes); 
+app.use('/api/dashboard', dashboardRoutes);
+app.use('/api/ai', aiRoutes);                          
 // 404 básico
 app.use((req, res) => res.status(404).json({ error: 'Ruta no encontrada' }));
 
