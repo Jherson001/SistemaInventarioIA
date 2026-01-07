@@ -1,54 +1,43 @@
 const mysql = require('mysql2');
 const util = require('util');
-const dotenv = require('dotenv');
 
-dotenv.config();
+// NO usamos dotenv.config() aquí, Render ya las tiene en process.env
 
-// 1. Crear el pool primero
-const pool = mysql.createPool({
-  connectionLimit: 10,
+const dbConfig = {
   host: process.env.DB_HOST,
-  port: process.env.DB_PORT || 3306,
   user: process.env.DB_USER,
-  password: process.env.DB_PASSWORD,
+  password: process.env.DB_PASS, // <--- Render tiene DB_PASS, esto es correcto
   database: process.env.DB_NAME,
+  port: Number(process.env.DB_PORT) || 23280, // Forzamos que sea un número
   ssl: {
-    rejectUnauthorized: false // REQUERIDO PARA AIVEN
+    rejectUnauthorized: false // Vital para Aiven
   },
-  multipleStatements: false
-});
+  connectionLimit: 10
+};
 
-// 2. Después de crear el pool, definimos query usando promisify
-// Usamos util.promisify para mantener compatibilidad con tu código actual
+// Log de diagnóstico (seguro, no muestra la clave completa)
+console.log('--- Diagnóstico de Conexión ---');
+console.log('Host:', dbConfig.host);
+console.log('Usuario:', dbConfig.user);
+console.log('Puerto:', dbConfig.port);
+console.log('Password cargado:', dbConfig.password ? 'SI (largo: ' + dbConfig.password.length + ')' : 'NO');
+console.log('-------------------------------');
+
+const pool = mysql.createPool(dbConfig);
 const query = util.promisify(pool.query).bind(pool);
 
-// Verifica la conexión inicial
-pool.getConnection((err, conn) => {
-  if (err) {
-    console.error('❌ Error creando el pool MySQL:', err.code || err.message);
-    if (err.code === 'ER_ACCESS_DENIED_ERROR') {
-      console.error('👉 REVISA: El usuario o la contraseña (DB_PASS) en Render son incorrectos.');
-    }
-    return;
-  }
-  console.log('✅ Conexión al pool de MySQL establecida correctamente.');
-  conn.release();
-});
-
-// Helper para obtener conexión (transacciones)
 function getConnection() {
   return new Promise((resolve, reject) => {
     pool.getConnection((err, conn) => (err ? reject(err) : resolve(conn)));
   });
 }
 
-// Función de prueba para el inicio del servidor
 async function testConnection() {
   try {
-    const rows = await query('SELECT DATABASE() AS db');
-    console.log('📦 DB en la nube seleccionada:', rows[0]?.db || '(ninguna)');
-  } catch (error) {
-    console.error('❌ Fallo en testConnection:', error.message);
+    const rows = await query('SELECT 1 + 1 AS result');
+    console.log('✅ Conexión exitosa a Aiven MySQL');
+  } catch (err) {
+    console.error('❌ Error crítico en testConnection:', err.message);
   }
 }
 
