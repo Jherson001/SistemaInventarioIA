@@ -1,7 +1,8 @@
 // src/hooks/useApi.js
 import useAuth from "./useAuth";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000";
+const API_URL = import.meta.env.VITE_API_URL || 'https://sistema-inventario-backend-9im6.onrender.com/api';
+
 export default function useApi() {
   const { token } = useAuth();
 
