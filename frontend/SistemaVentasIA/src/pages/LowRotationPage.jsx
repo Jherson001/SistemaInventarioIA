@@ -20,8 +20,8 @@ export default function LowRotationPage() {
   async function fetchData() {
     setLoading(true);
     try {
-      // CORRECCIÓN: Eliminado /ai/ para que use la ruta real del backend
-      const res = await fetch(`${apiBase}/low-rotation?min_score=${minScore}&limit=${limit}`);
+      // CAMBIO: Se agregó /dashboard/ a la ruta para corregir el error 404
+      const res = await fetch(`${apiBase}/dashboard/low-rotation?min_score=${minScore}&limit=${limit}`);
       const data = await res.json();
       setRows(data.rows || []);
     } catch (e) {
@@ -61,8 +61,8 @@ export default function LowRotationPage() {
 
   async function markFeedback(productId, isCorrect, note = "") {
     try {
-      // CORRECCIÓN: Eliminado /ai/ aquí también para evitar errores 404
-      const res = await fetch(`${apiBase}/low-rotation/${productId}/feedback`, {
+      // CAMBIO: Se agregó /dashboard/ aquí también para mantener la consistencia
+      const res = await fetch(`${apiBase}/dashboard/low-rotation/${productId}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_correct: isCorrect, note })
