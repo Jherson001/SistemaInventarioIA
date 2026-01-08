@@ -8,6 +8,8 @@ export default function LowRotationPage() {
   const [loading, setLoading] = useState(true);
   const [minScore, setMinScore] = useState(0.6);
   const [limit, setLimit] = useState(100);
+  
+  // Usamos VITE_API_URL que es la que tienes configurada en Render
   const apiBase = import.meta.env.VITE_API_URL; 
   const navigate = useNavigate();
 
@@ -18,6 +20,7 @@ export default function LowRotationPage() {
   async function fetchData() {
     setLoading(true);
     try {
+      // CORRECCIÓN: Eliminado /ai/ para que use la ruta real del backend
       const res = await fetch(`${apiBase}/low-rotation?min_score=${minScore}&limit=${limit}`);
       const data = await res.json();
       setRows(data.rows || []);
@@ -58,7 +61,8 @@ export default function LowRotationPage() {
 
   async function markFeedback(productId, isCorrect, note = "") {
     try {
-      const res = await fetch(`${apiBase}/ai/low-rotation/${productId}/feedback`, {
+      // CORRECCIÓN: Eliminado /ai/ aquí también para evitar errores 404
+      const res = await fetch(`${apiBase}/low-rotation/${productId}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_correct: isCorrect, note })
@@ -127,16 +131,12 @@ export default function LowRotationPage() {
                     <td className="px-3 py-2">{r.days_of_inventory ?? "-"}</td>
                     <td className="px-3 py-2">{r.weekly_90 ?? "-"}</td>
                     <td className="px-3 py-2 flex gap-2">
-                      
-                      {/* --- AQUÍ ESTÁ EL CAMBIO --- */}
                       <button
                         onClick={() => navigate(`/admin/products`)}
                         className="px-2 py-1 border rounded text-sm"
                       >
                         Ver
                       </button>
-                      {/* --------------------------- */}
-
                       <button
                         onClick={() => {
                           const promo = prompt("Describe la promo/recomendación corta:");
@@ -148,7 +148,6 @@ export default function LowRotationPage() {
                       >
                         Promo
                       </button>
-
                       <button
                         onClick={() => {
                           if (confirm("Marcar predicción como CORRECTA?")) markFeedback(r.product_id, true, "Admin confirmó");
@@ -157,7 +156,6 @@ export default function LowRotationPage() {
                       >
                         OK
                       </button>
-
                       <button
                         onClick={() => {
                           const note = prompt("¿Por qué es incorrecto?");
@@ -170,7 +168,6 @@ export default function LowRotationPage() {
                     </td>
                   </tr>
                 ))}
-
                 {rows.length === 0 && (
                   <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-500">Sin resultados</td></tr>
                 )}
