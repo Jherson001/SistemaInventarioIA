@@ -9,8 +9,6 @@ export default function LowRotationPage() {
   const [minScore, setMinScore] = useState(0.6);
   const [limit, setLimit] = useState(100);
   
-  // Usamos VITE_API_URL que es la que tienes configurada en Render
-  const apiBase = import.meta.env.VITE_API_URL; 
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -20,8 +18,8 @@ export default function LowRotationPage() {
   async function fetchData() {
     setLoading(true);
     try {
-      // CAMBIO: Se agregó /dashboard/ a la ruta para corregir el error 404
-      const res = await fetch(`${apiBase}/dashboard/low-rotation?min_score=${minScore}&limit=${limit}`);
+      // SOLUCIÓN NUCLEAR: URL Directa para evitar el error "undefined"
+      const res = await fetch(`https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation?min_score=${minScore}&limit=${limit}`);
       const data = await res.json();
       setRows(data.rows || []);
     } catch (e) {
@@ -61,8 +59,8 @@ export default function LowRotationPage() {
 
   async function markFeedback(productId, isCorrect, note = "") {
     try {
-      // CAMBIO: Se agregó /dashboard/ aquí también para mantener la consistencia
-      const res = await fetch(`${apiBase}/dashboard/low-rotation/${productId}/feedback`, {
+      // SOLUCIÓN NUCLEAR: URL Directa también aquí para el feedback
+      const res = await fetch(`https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation/${productId}/feedback`, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({ is_correct: isCorrect, note })
