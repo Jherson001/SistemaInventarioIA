@@ -8,7 +8,7 @@ export default function LowRotationPage() {
   const [loading, setLoading] = useState(true);
   const [minScore, setMinScore] = useState(0.6);
   const [limit, setLimit] = useState(100);
-  const apiBase = import.meta.env.VITE_API_BASE_URL;
+  const apiBase = import.meta.env.VITE_API_URL; 
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,7 +18,7 @@ export default function LowRotationPage() {
   async function fetchData() {
     setLoading(true);
     try {
-      const res = await fetch(`${apiBase}/ai/low-rotation?min_score=${minScore}&limit=${limit}`);
+      const res = await fetch(`${apiBase}/low-rotation?min_score=${minScore}&limit=${limit}`);
       const data = await res.json();
       setRows(data.rows || []);
     } catch (e) {
