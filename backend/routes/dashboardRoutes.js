@@ -8,6 +8,6 @@ const { authRequired } = require('../middlewares/auth');
 router.get('/stats', authRequired, ctrl.getStats); 
 
 // NUEVA RUTA: Baja Rotación (La que daba error 404)
-router.get('/low-rotation', authRequired, ctrl.getLowRotation);
+router.get('/low-rotation', ctrl.getLowRotation);
 
 module.exports = router;
