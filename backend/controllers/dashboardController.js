@@ -3,25 +3,11 @@ const db = require("../config/db");
 const DashboardController = {
   async getStats(req, res, next) {
     try {
-      const todayStats = await db.query(`
-        SELECT IFNULL(SUM(grand_total), 0) as total_money, COUNT(id) as total_count
-        FROM sales WHERE DATE(sold_at) = CURDATE() AND status = 'CONFIRMED'
-      `);
-      const monthStats = await db.query(`
-        SELECT IFNULL(SUM(grand_total), 0) as total_money
-        FROM sales WHERE MONTH(sold_at) = MONTH(CURDATE()) AND YEAR(sold_at) = YEAR(CURDATE()) AND status = 'CONFIRMED'
-      `);
+      const todayStats = await db.query(`SELECT IFNULL(SUM(grand_total), 0) as total_money, COUNT(id) as total_count FROM sales WHERE DATE(sold_at) = CURDATE() AND status = 'CONFIRMED'`);
+      const monthStats = await db.query(`SELECT IFNULL(SUM(grand_total), 0) as total_money FROM sales WHERE MONTH(sold_at) = MONTH(CURDATE()) AND YEAR(sold_at) = YEAR(CURDATE()) AND status = 'CONFIRMED'`);
       const productStats = await db.query(`SELECT COUNT(id) as total FROM products WHERE is_active = 1`);
-      const chartStats = await db.query(`
-        SELECT DATE_FORMAT(sold_at, '%d/%m') as date, SUM(grand_total) as total
-        FROM sales WHERE status = 'CONFIRMED'
-        GROUP BY DATE(sold_at) ORDER BY DATE(sold_at) ASC LIMIT 7
-      `);
-      const topProductsStats = await db.query(`
-        SELECT p.name, SUM(si.quantity) as quantity
-        FROM sale_items si JOIN sales s ON si.sale_id = s.id JOIN products p ON si.product_id = p.id
-        WHERE s.status = 'CONFIRMED' GROUP BY p.id ORDER BY quantity DESC LIMIT 5
-      `);
+      const chartStats = await db.query(`SELECT DATE_FORMAT(sold_at, '%d/%m') as date, SUM(grand_total) as total FROM sales WHERE status = 'CONFIRMED' GROUP BY DATE(sold_at) ORDER BY DATE(sold_at) ASC LIMIT 7`);
+      const topProductsStats = await db.query(`SELECT p.name, SUM(si.quantity) as quantity FROM sale_items si JOIN sales s ON si.sale_id = s.id JOIN products p ON si.product_id = p.id WHERE s.status = 'CONFIRMED' GROUP BY p.id ORDER BY quantity DESC LIMIT 5`);
 
       res.json({
         today: todayStats[0] || { total_money: 0, total_count: 0 },
@@ -41,19 +27,15 @@ const DashboardController = {
     } catch (err) { next(err); }
   },
 
-  // NUEVA FUNCIÓN: Guarda el feedback
+  // ESTA FUNCIÓN DEBE ESTAR AQUÍ DENTRO
   async postFeedback(req, res, next) {
     try {
-      const { id } = req.params; // ID del producto
+      const { id } = req.params;
       const { is_correct, note } = req.body;
-      
-      const sql = `INSERT INTO low_rotation_feedback (product_id, is_correct, note) VALUES (?, ?, ?)`;
-      await db.query(sql, [id, is_correct ? 1 : 0, note || '']);
-      
-      res.json({ ok: true, message: "Feedback guardado" });
+      await db.query(`INSERT INTO low_rotation_feedback (product_id, is_correct, note) VALUES (?, ?, ?)`, [id, is_correct ? 1 : 0, note || '']);
+      res.json({ ok: true });
     } catch (err) {
-      console.error("Error en feedback:", err);
-      res.status(500).json({ error: "Error al guardar feedback" });
+      res.status(500).json({ error: "Error interno" });
     }
   }
 };
