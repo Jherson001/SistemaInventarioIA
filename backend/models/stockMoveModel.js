@@ -1,3 +1,4 @@
+// backend/models/stockMoveModel.js
 const { query } = require('../config/db');
 
 const StockMoveModel = {
@@ -14,7 +15,8 @@ const StockMoveModel = {
   },
 
   async currentStock(product_id) {
-    const rows = await query(`SELECT stock FROM vw_stock_current WHERE product_id = ?`, [product_id]);
+    // Ahora consultamos directamente la tabla products para ser más rápidos
+    const rows = await query(`SELECT stock FROM products WHERE id = ?`, [product_id]);
     return rows[0]?.stock ?? 0;
   },
 
@@ -24,11 +26,25 @@ const StockMoveModel = {
   },
 
   async create({ product_id, move_type, quantity, reference, user_id, note }) {
-    const sql = `
+    // 1. Insertamos el movimiento en el historial
+    const sqlInsert = `
       INSERT INTO stock_moves (product_id, move_type, quantity, reference, user_id, note, moved_at)
       VALUES (?, ?, ?, ?, ?, ?, NOW())
     `;
-    const result = await query(sql, [product_id, move_type, quantity, reference, user_id, note || null]);
+    const result = await query(sqlInsert, [product_id, move_type, quantity, reference, user_id, note || null]);
+
+    // 2. CORRECCIÓN CLAVE: Actualizamos el stock real en la tabla productos
+    let sqlUpdate = '';
+    if (move_type === 'IN' || move_type === 'ADJUST') {
+      sqlUpdate = `UPDATE products SET stock = stock + ? WHERE id = ?`;
+    } else if (move_type === 'OUT') {
+      sqlUpdate = `UPDATE products SET stock = stock - ? WHERE id = ?`;
+    }
+
+    if (sqlUpdate) {
+      await query(sqlUpdate, [quantity, product_id]);
+    }
+
     const rows = await query(`SELECT * FROM stock_moves WHERE id = ?`, [result.insertId]);
     return rows[0] || null;
   }
