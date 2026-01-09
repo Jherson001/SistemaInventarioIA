@@ -12,17 +12,12 @@ function genSaleCode() {
 const allowedPayment = new Set(['CASH', 'CARD', 'YAPE', 'PLIN', 'TRANSFER']);
 
 const SaleModel = {
-
   async list({ date_from, date_to, limit = 50, offset = 0 }) {
     const params = [];
-    let sql = `
-      SELECT id, code, user_id, customer_id, subtotal, tax_total, discount_total,
-             grand_total, currency, status, paid_amount, payment_method, note, sold_at
-      FROM sales WHERE 1=1
-    `;
+    let sql = `SELECT id, code, subtotal, tax_total, grand_total, status, payment_method, sold_at FROM sales WHERE 1=1`;
     if (date_from) { sql += ` AND sold_at >= ?`; params.push(date_from); }
     if (date_to)   { sql += ` AND sold_at < ?`;  params.push(date_to); }
-    sql += ` ORDER BY sold_at DESC, id DESC LIMIT ? OFFSET ?`;
+    sql += ` ORDER BY sold_at DESC LIMIT ? OFFSET ?`;
     params.push(Number(limit), Number(offset));
     return query(sql, params);
   },
@@ -30,16 +25,13 @@ const SaleModel = {
   async findById(id) {
     const saleRows = await query(`SELECT * FROM sales WHERE id = ? LIMIT 1`, [id]);
     if (!saleRows.length) return null;
-    const items = await query(
-      `SELECT si.*, p.sku, p.name FROM sale_items si JOIN products p ON p.id = si.product_id WHERE si.sale_id = ?`,
-      [id]
-    );
+    const items = await query(`SELECT si.*, p.name FROM sale_items si JOIN products p ON p.id = si.product_id WHERE si.sale_id = ?`, [id]);
     return { ...saleRows[0], items };
   },
 
-  async create({ user_id, customer_id = null, payment_method = 'CASH', note = null, currency = 'PEN', items = [] }) {
+  async create({ user_id, customer_id = null, payment_method = 'CASH', note = null, items = [] }) {
     if (!allowedPayment.has(payment_method)) throw new Error('Método de pago no válido');
-    if (!Array.isArray(items) || items.length === 0) throw new Error('La venta debe tener al menos un ítem');
+    if (!items.length) throw new Error('Venta sin productos');
 
     const conn = await getConnection();
     const cQuery = util.promisify(conn.query).bind(conn);
@@ -50,62 +42,34 @@ const SaleModel = {
     try {
       await begin();
       const prepared = [];
-
       for (const raw of items) {
-        const product_id = Number(raw.product_id);
-        const qty = Number(raw.quantity);
-        if (!product_id || qty <= 0) throw new Error('Producto o cantidad inválida');
+        const [product] = await cQuery(`SELECT id, price, cost, stock FROM products WHERE id = ? LIMIT 1`, [raw.product_id]);
+        if (!product || product.stock < raw.quantity) throw new Error(`Stock insuficiente para ID ${raw.product_id}`);
 
-        const [product] = await cQuery(`SELECT id, price, cost, stock FROM products WHERE id = ? LIMIT 1`, [product_id]);
-        if (!product) throw new Error(`Producto ${product_id} no existe`);
-        if (product.stock < qty) throw new Error(`Stock insuficiente para el producto ${product_id}`);
-
-        const unit_price = raw.unit_price != null ? Number(raw.unit_price) : Number(product.price);
-        const line_subtotal = +(unit_price * qty).toFixed(2);
-        const line_tax = +(line_subtotal * 0.18).toFixed(2);
-        const line_total = +(line_subtotal + line_tax).toFixed(2);
-
+        const sub = +(product.price * raw.quantity).toFixed(2);
         prepared.push({
-          product_id, quantity: qty, unit_price, unit_cost: Number(product.cost) || 0,
-          line_subtotal, line_tax, line_total
+          id: product.id, qty: raw.quantity, price: product.price, cost: product.cost || 0,
+          sub, tax: +(sub * 0.18).toFixed(2), total: +(sub * 1.18).toFixed(2)
         });
       }
 
-      const subtotal = +prepared.reduce((a, i) => a + i.line_subtotal, 0).toFixed(2);
-      const tax_total = +prepared.reduce((a, i) => a + i.line_tax, 0).toFixed(2);
-      const grand_total = +(subtotal + tax_total).toFixed(2);
+      const grand_total = prepared.reduce((a, i) => a + i.total, 0);
       const code = genSaleCode();
-
       const saleIns = await cQuery(
-        `INSERT INTO sales (code, user_id, customer_id, subtotal, tax_total, grand_total, currency, payment_method, note, status, sold_at, created_at, updated_at)
-         VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, 'CONFIRMED', NOW(), NOW(), NOW())`,
-        [code, user_id, customer_id, subtotal, tax_total, grand_total, currency, payment_method, note]
+        `INSERT INTO sales (code, user_id, grand_total, payment_method, status, sold_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'CONFIRMED', NOW(), NOW(), NOW())`,
+        [code, user_id, grand_total, payment_method]
       );
 
-      const sale_id = saleIns.insertId;
-
       for (const it of prepared) {
-        await cQuery(
-          `INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, unit_cost, line_subtotal, line_tax, line_total) 
-           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
-          [sale_id, it.product_id, it.quantity, it.unit_price, it.unit_cost, it.line_subtotal, it.line_tax, it.line_total]
-        );
-        await cQuery(`UPDATE products SET stock = stock - ? WHERE id = ?`, [it.quantity, it.product_id]);
-        await cQuery(
-          `INSERT INTO stock_moves (product_id, move_type, quantity, reference, user_id, moved_at) 
-           VALUES (?, 'OUT', ?, ?, ?, NOW())`,
-          [it.product_id, it.quantity, `SALE:${sale_id}`, user_id]
-        );
+        await cQuery(`INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, unit_cost, line_total) VALUES (?, ?, ?, ?, ?, ?)`,
+          [saleIns.insertId, it.id, it.qty, it.price, it.cost, it.total]);
+        await cQuery(`UPDATE products SET stock = stock - ? WHERE id = ?`, [it.qty, it.id]);
+        await cQuery(`INSERT INTO stock_moves (product_id, move_type, quantity, reference, user_id, moved_at) VALUES (?, 'OUT', ?, ?, ?, NOW())`,
+          [it.id, it.qty, `SALE:${saleIns.insertId}`, user_id]);
       }
-
       await commit();
-      return { id: sale_id, code };
-    } catch (error) {
-      await rollback();
-      throw error;
-    } finally {
-      conn.release();
-    }
+      return { id: saleIns.insertId, code };
+    } catch (e) { await rollback(); throw e; } finally { conn.release(); }
   }
 };
 
