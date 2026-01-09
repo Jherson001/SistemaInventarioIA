@@ -22,24 +22,26 @@ const DashboardController = {
       // 3. Productos activos
       const productStats = await db.query(`SELECT COUNT(id) as total FROM products WHERE is_active = 1`);
 
-      // 4. Gráfico de tendencia - CORREGIDO PARA MYSQL 8 (ANY_VALUE)
+      // 4. Gráfico de tendencia - SOLUCIÓN DEFINITIVA PARA MYSQL 8
+      // Agrupamos por la fecha real y por el formato para que no haya ambigüedad
       const chartStats = await db.query(`
-        SELECT ANY_VALUE(DATE_FORMAT(sold_at, '%d/%m')) as date, SUM(grand_total) as total
+        SELECT DATE_FORMAT(sold_at, '%d/%m') as date, SUM(grand_total) as total
         FROM sales 
         WHERE status = 'CONFIRMED'
-        GROUP BY DATE(sold_at) 
+        GROUP BY DATE(sold_at), DATE_FORMAT(sold_at, '%d/%m')
         ORDER BY DATE(sold_at) ASC 
         LIMIT 7
       `);
 
-      // 5. Top 5 Productos - CORREGIDO PARA MYSQL 8 (ANY_VALUE)
+      // 5. Top 5 Productos - SOLUCIÓN DEFINITIVA PARA MYSQL 8
+      // Incluimos p.name en el GROUP BY para cumplir con la regla strict
       const topProductsStats = await db.query(`
-        SELECT ANY_VALUE(p.name) as name, SUM(si.quantity) as quantity
+        SELECT p.name, SUM(si.quantity) as quantity
         FROM sale_items si
         JOIN sales s ON si.sale_id = s.id
         JOIN products p ON si.product_id = p.id
         WHERE s.status = 'CONFIRMED'
-        GROUP BY p.id
+        GROUP BY p.id, p.name
         ORDER BY quantity DESC
         LIMIT 5
       `);
