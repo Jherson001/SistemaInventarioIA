@@ -1,25 +1,16 @@
-// backend/models/saleModel.js
 const util = require('util');
 const { getConnection, query } = require('../config/db');
 
 function genSaleCode() {
   const now = new Date();
   const iso = now.toISOString().replace(/[-:TZ.]/g, '').slice(0, 14);
-  const tail = String(now.getMilliseconds()).padStart(3, '0');
-  return `S${iso}${tail}`;
+  return `S${iso}${String(now.getMilliseconds()).padStart(3, '0')}`;
 }
 
-const allowedPayment = new Set(['CASH', 'CARD', 'YAPE', 'PLIN', 'TRANSFER']);
-
 const SaleModel = {
-  async list({ date_from, date_to, limit = 50, offset = 0 }) {
-    const params = [];
-    let sql = `SELECT id, code, subtotal, tax_total, grand_total, status, payment_method, sold_at FROM sales WHERE 1=1`;
-    if (date_from) { sql += ` AND sold_at >= ?`; params.push(date_from); }
-    if (date_to)   { sql += ` AND sold_at < ?`;  params.push(date_to); }
-    sql += ` ORDER BY sold_at DESC LIMIT ? OFFSET ?`;
-    params.push(Number(limit), Number(offset));
-    return query(sql, params);
+  async list({ limit = 50, offset = 0 }) {
+    const sql = `SELECT * FROM sales ORDER BY sold_at DESC LIMIT ? OFFSET ?`;
+    return query(sql, [Number(limit), Number(offset)]);
   },
 
   async findById(id) {
@@ -29,47 +20,36 @@ const SaleModel = {
     return { ...saleRows[0], items };
   },
 
-  async create({ user_id, customer_id = null, payment_method = 'CASH', note = null, items = [] }) {
-    if (!allowedPayment.has(payment_method)) throw new Error('Método de pago no válido');
-    if (!items.length) throw new Error('Venta sin productos');
-
+  async create({ user_id, items = [] }) {
+    if (!items.length) throw new Error('Venta vacía');
     const conn = await getConnection();
     const cQuery = util.promisify(conn.query).bind(conn);
-    const begin = util.promisify(conn.beginTransaction).bind(conn);
-    const commit = util.promisify(conn.commit).bind(conn);
-    const rollback = util.promisify(conn.rollback).bind(conn);
-
     try {
-      await begin();
-      const prepared = [];
-      for (const raw of items) {
-        const [product] = await cQuery(`SELECT id, price, cost, stock FROM products WHERE id = ? LIMIT 1`, [raw.product_id]);
-        if (!product || product.stock < raw.quantity) throw new Error(`Stock insuficiente para ID ${raw.product_id}`);
-
-        const sub = +(product.price * raw.quantity).toFixed(2);
-        prepared.push({
-          id: product.id, qty: raw.quantity, price: product.price, cost: product.cost || 0,
-          sub, tax: +(sub * 0.18).toFixed(2), total: +(sub * 1.18).toFixed(2)
-        });
-      }
-
-      const grand_total = prepared.reduce((a, i) => a + i.total, 0);
+      await util.promisify(conn.beginTransaction).bind(conn)();
       const code = genSaleCode();
-      const saleIns = await cQuery(
-        `INSERT INTO sales (code, user_id, grand_total, payment_method, status, sold_at, created_at, updated_at) VALUES (?, ?, ?, ?, 'CONFIRMED', NOW(), NOW(), NOW())`,
-        [code, user_id, grand_total, payment_method]
-      );
+      const saleIns = await cQuery(`INSERT INTO sales (code, user_id, grand_total, status, sold_at) VALUES (?, ?, 0, 'CONFIRMED', NOW())`, [code, user_id]);
+      const sale_id = saleIns.insertId;
+      let grandTotal = 0;
 
-      for (const it of prepared) {
+      for (const it of items) {
+        const [prod] = await cQuery(`SELECT price, cost, stock FROM products WHERE id = ?`, [it.product_id]);
+        if (!prod || prod.stock < it.quantity) throw new Error('Stock insuficiente');
+        const lineTotal = +(prod.price * it.quantity).toFixed(2);
+        grandTotal += lineTotal;
+
         await cQuery(`INSERT INTO sale_items (sale_id, product_id, quantity, unit_price, unit_cost, line_total) VALUES (?, ?, ?, ?, ?, ?)`,
-          [saleIns.insertId, it.id, it.qty, it.price, it.cost, it.total]);
-        await cQuery(`UPDATE products SET stock = stock - ? WHERE id = ?`, [it.qty, it.id]);
+          [sale_id, it.product_id, it.quantity, prod.price, prod.cost || 0, lineTotal]);
+        await cQuery(`UPDATE products SET stock = stock - ? WHERE id = ?`, [it.quantity, it.product_id]);
         await cQuery(`INSERT INTO stock_moves (product_id, move_type, quantity, reference, user_id, moved_at) VALUES (?, 'OUT', ?, ?, ?, NOW())`,
-          [it.id, it.qty, `SALE:${saleIns.insertId}`, user_id]);
+          [it.product_id, it.quantity, `SALE:${sale_id}`, user_id]);
       }
-      await commit();
-      return { id: saleIns.insertId, code };
-    } catch (e) { await rollback(); throw e; } finally { conn.release(); }
+      await cQuery(`UPDATE sales SET grand_total = ? WHERE id = ?`, [grandTotal, sale_id]);
+      await util.promisify(conn.commit).bind(conn)();
+      return { id: sale_id, code };
+    } catch (e) { 
+      await util.promisify(conn.rollback).bind(conn)(); 
+      throw e; 
+    } finally { conn.release(); }
   }
 };
 
