@@ -16,23 +16,33 @@ export default function LowRotationPage() {
   async function fetchData() {
     setLoading(true);
     try {
-      const token = localStorage.getItem('token'); 
-      const res = await fetch(`https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation?min_score=${minScore}&limit=${limit}`, {
-        headers: {
-          'Authorization': `Bearer ${token}`,
-          'Content-Type': 'application/json'
+      const token = localStorage.getItem("token");
+      console.log("Token enviado:", token);
+
+      const res = await fetch(
+        `https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation?min_score=${minScore}&limit=${limit}`,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
         }
-      });
+      );
+
+      console.log("Status de la respuesta:", res.status);
 
       if (res.status === 401) {
+        console.warn("Error 401: El servidor rechazó el token");
         navigate("/login");
         return;
       }
 
       const data = await res.json();
+      console.log("Datos recibidos:", data);
+
       setRows(data.rows || []);
     } catch (e) {
-      console.error("fetch low rotation:", e);
+      console.error("Error en fetchData:", e);
     } finally {
       setLoading(false);
     }
@@ -40,15 +50,19 @@ export default function LowRotationPage() {
 
   async function markFeedback(productId, isCorrect, note = "") {
     try {
-      const token = localStorage.getItem('token');
-      const res = await fetch(`https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation/${productId}/feedback`, {
-        method: "POST",
-        headers: { 
-          'Authorization': `Bearer ${token}`,
-          "Content-Type": "application/json" 
-        },
-        body: JSON.stringify({ is_correct: isCorrect, note })
-      });
+      const token = localStorage.getItem("token");
+      const res = await fetch(
+        `https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation/${productId}/feedback`,
+        {
+          method: "POST",
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json",
+          },
+          body: JSON.stringify({ is_correct: isCorrect, note }),
+        }
+      );
+
       if (res.ok) {
         fetchData();
       } else {
@@ -59,29 +73,46 @@ export default function LowRotationPage() {
     }
   }
 
-  // ... (El resto del código de exportCSV y el return se mantienen igual)
   function exportCSV() {
     if (!rows.length) return;
-    const headers = ["product_id","sku","name","score","label","reason","days_since_last_sale","days_of_inventory","weekly_90"];
+
+    const headers = [
+      "product_id",
+      "sku",
+      "name",
+      "score",
+      "label",
+      "reason",
+      "days_since_last_sale",
+      "days_of_inventory",
+      "weekly_90",
+    ];
+
     const csvRows = [
       headers.join(","),
-      ...rows.map(r => [
-        r.product_id,
-        JSON.stringify(r.product_sku || ""),
-        JSON.stringify(r.product_name || ""),
-        r.score,
-        r.label,
-        JSON.stringify(r.reason || ""),
-        r.days_since_last_sale ?? "",
-        r.days_of_inventory ?? "",
-        r.weekly_90 ?? ""
-      ].join(","))
+      ...rows.map((r) =>
+        [
+          r.product_id,
+          JSON.stringify(r.product_sku || ""),
+          JSON.stringify(r.product_name || ""),
+          r.score,
+          r.label,
+          JSON.stringify(r.reason || ""),
+          r.days_since_last_sale ?? "",
+          r.days_of_inventory ?? "",
+          r.weekly_90 ?? "",
+        ].join(",")
+      ),
     ];
-    const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
+
+    const blob = new Blob([csvRows.join("\n")], {
+      type: "text/csv;charset=utf-8;",
+    });
+
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
     a.href = url;
-    a.download = `low_rotation_${new Date().toISOString().slice(0,10)}.csv`;
+    a.download = `low_rotation_${new Date().toISOString().slice(0, 10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
   }
@@ -90,17 +121,32 @@ export default function LowRotationPage() {
     <DashboardLayout activeMenu="/admin/low-rotation">
       <div className="p-6">
         <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-semibold">Productos de baja rotación</h1>
+          <h1 className="text-xl font-semibold">
+            Productos de baja rotación
+          </h1>
           <div className="flex gap-2 items-center">
             <label className="text-sm">Score mínimo</label>
             <input
-              type="number" step="0.05" min={0} max={1}
+              type="number"
+              step="0.05"
+              min={0}
+              max={1}
               value={minScore}
-              onChange={(e)=>setMinScore(Number(e.target.value))}
+              onChange={(e) => setMinScore(Number(e.target.value))}
               className="border rounded px-2 py-1 w-24"
             />
-            <button onClick={fetchData} className="px-3 py-1 bg-blue-600 text-white rounded">Refrescar</button>
-            <button onClick={exportCSV} className="px-3 py-1 bg-green-600 text-white rounded">Exportar CSV</button>
+            <button
+              onClick={fetchData}
+              className="px-3 py-1 bg-blue-600 text-white rounded"
+            >
+              Refrescar
+            </button>
+            <button
+              onClick={exportCSV}
+              className="px-3 py-1 bg-green-600 text-white rounded"
+            >
+              Exportar CSV
+            </button>
           </div>
         </div>
 
@@ -126,23 +172,53 @@ export default function LowRotationPage() {
               <tbody>
                 {rows.map((r, idx) => (
                   <tr key={r.product_id} className="border-t">
-                    <td className="px-3 py-2">{idx+1}</td>
-                    <td className="px-3 py-2">{r.product_sku ?? "-"}</td>
+                    <td className="px-3 py-2">{idx + 1}</td>
+                    <td className="px-3 py-2">
+                      {r.product_sku ?? "-"}
+                    </td>
                     <td className="px-3 py-2">{r.product_name}</td>
-                    <td className="px-3 py-2 font-medium">{Number(r.score).toFixed(3)}</td>
-                    <td className="px-3 py-2 text-red-600 font-bold uppercase">{r.label}</td>
+                    <td className="px-3 py-2 font-medium">
+                      {Number(r.score).toFixed(3)}
+                    </td>
+                    <td className="px-3 py-2 text-red-600 font-bold uppercase">
+                      {r.label}
+                    </td>
                     <td className="px-3 py-2">{r.reason}</td>
-                    <td className="px-3 py-2">{r.days_since_last_sale} días</td>
-                    <td className="px-3 py-2">{r.days_of_inventory}</td>
+                    <td className="px-3 py-2">
+                      {r.days_since_last_sale} días
+                    </td>
+                    <td className="px-3 py-2">
+                      {r.days_of_inventory}
+                    </td>
                     <td className="px-3 py-2">{r.weekly_90}</td>
                     <td className="px-3 py-2 flex gap-2">
-                      <button onClick={() => navigate(`/admin/products`)} className="px-2 py-1 border rounded text-xs">Ver</button>
-                      <button onClick={() => { if (confirm("¿Marcar como correcto?")) markFeedback(r.product_id, true); }} className="px-2 py-1 bg-green-100 rounded text-xs">OK</button>
+                      <button
+                        onClick={() => navigate(`/admin/products`)}
+                        className="px-2 py-1 border rounded text-xs"
+                      >
+                        Ver
+                      </button>
+                      <button
+                        onClick={() => {
+                          if (confirm("¿Marcar como correcto?"))
+                            markFeedback(r.product_id, true);
+                        }}
+                        className="px-2 py-1 bg-green-100 rounded text-xs"
+                      >
+                        OK
+                      </button>
                     </td>
                   </tr>
                 ))}
                 {rows.length === 0 && (
-                  <tr><td colSpan={10} className="px-3 py-6 text-center text-gray-500">Sin resultados</td></tr>
+                  <tr>
+                    <td
+                      colSpan={10}
+                      className="px-3 py-6 text-center text-gray-500"
+                    >
+                      Sin resultados
+                    </td>
+                  </tr>
                 )}
               </tbody>
             </table>
