@@ -1,16 +1,15 @@
 const db = require("../config/db");
 
 const DashboardController = {
+  // Mantenemos getStats exactamente como está porque ya funciona bien
   async getStats(req, res, next) {
     try {
-      // 1. Ventas de HOY
       const todayStats = await db.query(`
         SELECT IFNULL(SUM(grand_total), 0) as total_money, COUNT(id) as total_count
         FROM sales 
         WHERE DATE(sold_at) = CURDATE() AND status = 'CONFIRMED'
       `);
 
-      // 2. Ventas del MES
       const monthStats = await db.query(`
         SELECT IFNULL(SUM(grand_total), 0) as total_money
         FROM sales 
@@ -19,14 +18,12 @@ const DashboardController = {
         AND status = 'CONFIRMED'
       `);
 
-      // 3. Productos activos
       const productStats = await db.query(`
         SELECT COUNT(id) as total 
         FROM products 
         WHERE is_active = 1
       `);
 
-      // 4. Gráfico de tendencia - REESCRITO PARA MÁXIMA COMPATIBILIDAD
       const chartStats = await db.query(`
         SELECT DATE_FORMAT(sold_at, '%d/%m') as date, SUM(grand_total) as total
         FROM sales 
@@ -36,7 +33,6 @@ const DashboardController = {
         LIMIT 7
       `);
 
-      // 5. Top 5 Productos - REESCRITO PARA MÁXIMA COMPATIBILIDAD
       const topProductsStats = await db.query(`
         SELECT p.name, SUM(si.quantity) as quantity
         FROM sale_items si
@@ -57,11 +53,12 @@ const DashboardController = {
       });
 
     } catch (err) {
-      console.error("❌ Error Dashboard:", err);
+      console.error("❌ Error Dashboard Stats:", err);
       next(err);
     }
   },
 
+  // Lógica de Baja Rotación profesional: Filtra productos que ya tienen feedback
   async getLowRotation(req, res, next) {
     try {
       const sql = `
@@ -72,31 +69,45 @@ const DashboardController = {
           0.85 as score, 
           'low_rotation' as label, 
           'Sin ventas recientes' as reason, 
-          DATEDIFF(NOW(), p.created_at) as days_since_last_sale, 
+          IFNULL(DATEDIFF(NOW(), (SELECT MAX(s.sold_at) FROM sale_items si JOIN sales s ON si.sale_id = s.id WHERE si.product_id = p.id)), DATEDIFF(NOW(), p.created_at)) as days_since_last_sale, 
           p.stock as days_of_inventory, 
           0 as weekly_90 
         FROM products p 
         WHERE p.stock > 0 
+        AND p.id NOT IN (SELECT product_id FROM low_rotation_feedback)
+        ORDER BY days_since_last_sale DESC
         LIMIT 10
       `;
       const results = await db.query(sql);
       res.json({ rows: results });
     } catch (err) {
+      console.error("❌ Error Low Rotation:", err);
       next(err);
     }
   },
 
+  // Registro de Feedback: Robusto y previene duplicados
   async postFeedback(req, res, next) {
     try {
-      const { id } = req.params;
+      // El ID puede venir de la URL o del body dependiendo de cómo lo envíe tu frontend
+      const product_id = req.params.id || req.body.product_id;
       const { is_correct, note } = req.body;
+
+      if (!product_id) {
+        return res.status(400).json({ error: "Falta el ID del producto" });
+      }
+
       await db.query(
-        `INSERT INTO low_rotation_feedback (product_id, is_correct, note) VALUES (?, ?, ?)`,
-        [id, is_correct ? 1 : 0, note || ""]
+        `INSERT INTO low_rotation_feedback (product_id, is_correct, note) 
+         VALUES (?, ?, ?) 
+         ON DUPLICATE KEY UPDATE is_correct = VALUES(is_correct), note = VALUES(note)`,
+        [product_id, is_correct ? 1 : 0, note || ""]
       );
-      res.json({ ok: true });
+
+      res.json({ ok: true, message: "Feedback procesado" });
     } catch (err) {
-      res.status(500).json({ error: "Error interno" });
+      console.error("❌ Error Post Feedback:", err);
+      res.status(500).json({ error: "No se pudo guardar el feedback" });
     }
   }
 };
