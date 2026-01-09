@@ -2,7 +2,6 @@
 const db = require("../config/db");
 
 const DashboardController = {
-  // --- Mantiene tu función getStats igual ---
   async getStats(req, res, next) {
     try {
       const fechaHoy = new Date().toLocaleDateString('en-CA');
@@ -42,37 +41,32 @@ const DashboardController = {
     } catch (err) { next(err); }
   },
 
-  // --- NUEVA FUNCIÓN: Lógica de Baja Rotación ---
   async getLowRotation(req, res, next) {
     try {
-      const minScore = req.query.min_score || 0.7;
-
-      // Consulta SQL para detectar productos sin salida
       const sql = `
         SELECT 
-          p.sku, 
-          p.name as producto, 
-          0.85 as score, 
-          'Baja Rotación' as etiqueta,
-          'Sin ventas en 15 días' as motivo,
-          DATEDIFF(NOW(), IFNULL(MAX(s.sold_at), p.created_at)) as dias_sin_venta,
-          p.stock as dias_inventario,
-          0 as unidades_semana
+          p.id as product_id,
+          p.sku as product_sku, 
+          p.name as product_name, 
+          0.850 as score, 
+          'low_rotation' as label,
+          'Sin ventas en 15 días' as reason,
+          DATEDIFF(NOW(), IFNULL(MAX(s.sold_at), p.created_at)) as days_since_last_sale,
+          p.stock as days_of_inventory,
+          0 as weekly_90
         FROM products p
         LEFT JOIN sale_items si ON p.id = si.product_id
         LEFT JOIN sales s ON si.sale_id = s.id
         WHERE p.is_active = 1 AND p.stock > 0
         GROUP BY p.id
-        HAVING dias_sin_venta > 15 OR MAX(s.sold_at) IS NULL
-        ORDER BY dias_sin_venta DESC
-        LIMIT 10
+        HAVING days_since_last_sale > 15 OR MAX(s.sold_at) IS NULL
+        ORDER BY days_since_last_sale DESC
+        LIMIT 20
       `;
-
       const results = await db.query(sql);
-      res.json(results);
+      res.json({ rows: results }); // Formato correcto para el Frontend
     } catch (err) {
-      console.error("❌ Error Low Rotation:", err);
-      res.status(500).json({ error: "Error al calcular baja rotación" });
+      next(err);
     }
   }
 };

@@ -1,6 +1,5 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-// Ajusta los puntos "../" según donde tengas este archivo guardado
 import DashboardLayout from "../components/layouts/DashboardLayout"; 
 
 export default function LowRotationPage() {
@@ -8,7 +7,6 @@ export default function LowRotationPage() {
   const [loading, setLoading] = useState(true);
   const [minScore, setMinScore] = useState(0.6);
   const [limit, setLimit] = useState(100);
-  
   const navigate = useNavigate();
 
   useEffect(() => {
@@ -18,21 +16,53 @@ export default function LowRotationPage() {
   async function fetchData() {
     setLoading(true);
     try {
-      // SOLUCIÓN NUCLEAR: URL Directa para evitar el error "undefined"
-      const res = await fetch(`https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation?min_score=${minScore}&limit=${limit}`);
+      const token = localStorage.getItem('token'); 
+      const res = await fetch(`https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation?min_score=${minScore}&limit=${limit}`, {
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        }
+      });
+
+      if (res.status === 401) {
+        navigate("/login");
+        return;
+      }
+
       const data = await res.json();
       setRows(data.rows || []);
     } catch (e) {
       console.error("fetch low rotation:", e);
-      alert("Error al cargar datos. Revisa la consola.");
     } finally {
       setLoading(false);
     }
   }
 
+  async function markFeedback(productId, isCorrect, note = "") {
+    try {
+      const token = localStorage.getItem('token');
+      const res = await fetch(`https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation/${productId}/feedback`, {
+        method: "POST",
+        headers: { 
+          'Authorization': `Bearer ${token}`,
+          "Content-Type": "application/json" 
+        },
+        body: JSON.stringify({ is_correct: isCorrect, note })
+      });
+      if (res.ok) {
+        fetchData();
+      } else {
+        alert("Error al guardar feedback");
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }
+
+  // ... (El resto del código de exportCSV y el return se mantienen igual)
   function exportCSV() {
     if (!rows.length) return;
-    const headers = ["product_id","sku","name","score","label","reason","days_since_last_sale","days_of_inventory","weekly_90","flagged_at"];
+    const headers = ["product_id","sku","name","score","label","reason","days_since_last_sale","days_of_inventory","weekly_90"];
     const csvRows = [
       headers.join(","),
       ...rows.map(r => [
@@ -44,8 +74,7 @@ export default function LowRotationPage() {
         JSON.stringify(r.reason || ""),
         r.days_since_last_sale ?? "",
         r.days_of_inventory ?? "",
-        r.weekly_90 ?? "",
-        r.flagged_at ?? ""
+        r.weekly_90 ?? ""
       ].join(","))
     ];
     const blob = new Blob([csvRows.join("\n")], { type: "text/csv;charset=utf-8;" });
@@ -55,26 +84,6 @@ export default function LowRotationPage() {
     a.download = `low_rotation_${new Date().toISOString().slice(0,10)}.csv`;
     a.click();
     URL.revokeObjectURL(url);
-  }
-
-  async function markFeedback(productId, isCorrect, note = "") {
-    try {
-      // SOLUCIÓN NUCLEAR: URL Directa también aquí para el feedback
-      const res = await fetch(`https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation/${productId}/feedback`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ is_correct: isCorrect, note })
-      });
-      const data = await res.json();
-      if (data.ok) {
-        fetchData(); // refresca lista
-      } else {
-        alert("Error al guardar feedback");
-      }
-    } catch (e) {
-      console.error(e);
-      alert("Error al enviar feedback");
-    }
   }
 
   return (
@@ -119,50 +128,16 @@ export default function LowRotationPage() {
                   <tr key={r.product_id} className="border-t">
                     <td className="px-3 py-2">{idx+1}</td>
                     <td className="px-3 py-2">{r.product_sku ?? "-"}</td>
-                    <td className="px-3 py-2">{r.product_name ?? r.product_id}</td>
+                    <td className="px-3 py-2">{r.product_name}</td>
                     <td className="px-3 py-2 font-medium">{Number(r.score).toFixed(3)}</td>
-                    <td className={r.label === "low_rotation" ? "px-3 py-2 text-red-600" : "px-3 py-2 text-green-600"}>
-                      {r.label}
-                    </td>
+                    <td className="px-3 py-2 text-red-600 font-bold uppercase">{r.label}</td>
                     <td className="px-3 py-2">{r.reason}</td>
-                    <td className="px-3 py-2">{r.days_since_last_sale}</td>
-                    <td className="px-3 py-2">{r.days_of_inventory ?? "-"}</td>
-                    <td className="px-3 py-2">{r.weekly_90 ?? "-"}</td>
+                    <td className="px-3 py-2">{r.days_since_last_sale} días</td>
+                    <td className="px-3 py-2">{r.days_of_inventory}</td>
+                    <td className="px-3 py-2">{r.weekly_90}</td>
                     <td className="px-3 py-2 flex gap-2">
-                      <button
-                        onClick={() => navigate(`/admin/products`)}
-                        className="px-2 py-1 border rounded text-sm"
-                      >
-                        Ver
-                      </button>
-                      <button
-                        onClick={() => {
-                          const promo = prompt("Describe la promo/recomendación corta:");
-                          if (promo) {
-                            markFeedback(r.product_id, false, "Sugerencia promo: " + promo);
-                          }
-                        }}
-                        className="px-2 py-1 border rounded text-sm"
-                      >
-                        Promo
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm("Marcar predicción como CORRECTA?")) markFeedback(r.product_id, true, "Admin confirmó");
-                        }}
-                        className="px-2 py-1 bg-green-100 rounded text-sm"
-                      >
-                        OK
-                      </button>
-                      <button
-                        onClick={() => {
-                          const note = prompt("¿Por qué es incorrecto?");
-                          if (note) markFeedback(r.product_id, false, note);
-                        }}
-                        className="px-2 py-1 bg-red-100 rounded text-sm"
-                      >
-                        X
-                      </button>
+                      <button onClick={() => navigate(`/admin/products`)} className="px-2 py-1 border rounded text-xs">Ver</button>
+                      <button onClick={() => { if (confirm("¿Marcar como correcto?")) markFeedback(r.product_id, true); }} className="px-2 py-1 bg-green-100 rounded text-xs">OK</button>
                     </td>
                   </tr>
                 ))}
