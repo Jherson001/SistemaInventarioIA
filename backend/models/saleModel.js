@@ -82,33 +82,34 @@ try {
 
   const sale_id = saleIns.insertId;
 
-  for (const it of prepared) {
-    await cQuery(
-      `INSERT INTO sale_items
-       (sale_id, product_id, quantity, unit_price, unit_cost, line_total)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-      [
-        sale_id,
-        it.product_id,
-        it.quantity,
-        it.unit_price,
-        it.unit_cost,
-        it.line_total
-      ]
-    );
+ for (const it of prepared) {
+        // CORREGIDO: Incluimos todas las columnas que pide tu base de datos
+        await cQuery(
+          `INSERT INTO sale_items 
+           (sale_id, product_id, quantity, unit_price, unit_cost, line_subtotal, line_tax, line_total) 
+           VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+          [
+            sale_id, 
+            it.product_id, 
+            it.quantity, 
+            it.unit_price, 
+            it.unit_cost || 0, 
+            it.line_subtotal, 
+            it.line_tax, 
+            it.line_total
+          ]
+        );
 
-    await cQuery(
-      `UPDATE products SET stock = stock - ? WHERE id = ?`,
-      [it.quantity, it.product_id]
-    );
+        // Actualizamos stock
+        await cQuery(`UPDATE products SET stock = stock - ? WHERE id = ?`, [it.quantity, it.product_id]);
 
-    await cQuery(
-      `INSERT INTO stock_moves
-       (product_id, move_type, quantity, reference, user_id, moved_at)
-       VALUES (?, 'OUT', ?, ?, ?, NOW())`,
-      [it.product_id, it.quantity, `SALE:${sale_id}`, user_id]
-    );
-  }
+        // Movimiento de stock
+        await cQuery(
+          `INSERT INTO stock_moves (product_id, move_type, quantity, reference, user_id, moved_at) 
+           VALUES (?, 'OUT', ?, ?, ?, NOW())`,
+          [it.product_id, it.quantity, `SALE:${sale_id}`, user_id]
+        );
+      }
 
   await commit();
   return { id: sale_id, code };
