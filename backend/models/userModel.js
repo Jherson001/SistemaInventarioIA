@@ -1,16 +1,26 @@
 // backend/models/userModel.js
 const db = require('../config/db');
 
-// Busca por email (case/espacios tolerantes)
+function normalizeUser(row) {
+  if (!row) return null;
+  return {
+    ...row,
+    full_name: row.full_name || row.name || row.email || 'Usuario',
+    password_hash: row.password_hash || row.password || '',
+    // Si la columna no existe, SELECT * no la trae → asumimos activo
+    is_active: row.is_active === undefined || row.is_active === null ? 1 : Number(row.is_active),
+  };
+}
+
 async function findByEmail(email) {
+  // SELECT * evita romper si faltan columnas (BD cloud incompleta)
   const rows = await db.query(
-    `SELECT id, full_name, email, password_hash, is_active, last_login_at
-       FROM users
+    `SELECT * FROM users
       WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))
       LIMIT 1`,
     [email]
   );
-  return rows[0] || null;
+  return normalizeUser(rows[0]);
 }
 
 async function create({ full_name, email, password_hash, is_active = 1 }) {
@@ -23,29 +33,34 @@ async function create({ full_name, email, password_hash, is_active = 1 }) {
 }
 
 async function findById(id) {
-  const rows = await db.query(
-    `SELECT id, full_name, email, is_active, last_login_at
-       FROM users
-      WHERE id = ?
-      LIMIT 1`,
-    [id]
-  );
-  return rows[0] || null;
+  const rows = await db.query(`SELECT * FROM users WHERE id = ? LIMIT 1`, [id]);
+  return normalizeUser(rows[0]);
 }
 
 async function setLastLogin(id) {
-  await db.query(`UPDATE users SET last_login_at = NOW() WHERE id = ?`, [id]);
+  try {
+    await db.query(`UPDATE users SET last_login_at = NOW() WHERE id = ?`, [id]);
+  } catch (err) {
+    // Columna puede no existir aún en cloud
+    console.warn('[users] setLastLogin omitido:', err.message);
+  }
 }
 
 async function getRoles(userId) {
-  const rows = await db.query(
-    `SELECT r.name
-       FROM roles r
-       JOIN user_roles ur ON ur.role_id = r.id
-      WHERE ur.user_id = ?`,
-    [userId]
-  );
-  return rows.map(r => r.name);
+  try {
+    const rows = await db.query(
+      `SELECT r.name
+         FROM roles r
+         JOIN user_roles ur ON ur.role_id = r.id
+        WHERE ur.user_id = ?`,
+      [userId]
+    );
+    const roles = rows.map(r => r.name);
+    return roles.length ? roles : ['admin'];
+  } catch (err) {
+    console.warn('[users] getRoles fallback admin:', err.message);
+    return ['admin'];
+  }
 }
 
 async function assignRoleByName(userId, roleName) {

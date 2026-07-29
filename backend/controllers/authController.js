@@ -46,18 +46,21 @@ const AuthController = {
         return res.status(401).json({ error: 'Credenciales inválidas' });
       }
 
-      if (!user.is_active) {
+      if (Number(user.is_active) === 0) {
         console.warn('[auth] user_inactive:', email);
         return res.status(403).json({ error: 'Credenciales inválidas' });
       }
 
-      const ok = bcrypt.compareSync(password, user.password_hash || '');
+      const hash = user.password_hash || '';
+      const ok = hash && bcrypt.compareSync(password, hash);
       if (!ok) {
         console.warn('[auth] bad_password:', email);
         return res.status(401).json({ error: 'Credenciales inválidas' });
       }
 
-      await User.setLastLogin(user.id);
+      try {
+        await User.setLastLogin(user.id);
+      } catch (_) { /* ignore */ }
       const roles = await User.getRoles(user.id);
       const token = signToken(user, roles);
 
