@@ -9,9 +9,28 @@ import { downloadCsv } from "../../utils/csv";
 function stockBadge(stock, min) {
   const s = Number(stock ?? 0);
   const m = Number(min ?? 0);
-  if (s <= 0) return <span className="badge badge-out">Sin stock</span>;
-  if (s <= m) return <span className="badge badge-low">Bajo ({s})</span>;
-  return <span className="badge badge-ok">{s}</span>;
+  if (s <= 0) {
+    return (
+      <div className="flex flex-col items-start gap-0.5">
+        <span className="font-semibold text-slate-900">0</span>
+        <span className="badge badge-out">Sin stock</span>
+      </div>
+    );
+  }
+  if (s <= m) {
+    return (
+      <div className="flex flex-col items-start gap-0.5">
+        <span className="font-semibold text-slate-900">{s}</span>
+        <span className="badge badge-low">Bajo</span>
+      </div>
+    );
+  }
+  return (
+    <div className="flex flex-col items-start gap-0.5">
+      <span className="font-semibold text-slate-900">{s}</span>
+      <span className="badge badge-ok">OK</span>
+    </div>
+  );
 }
 
 export default function Products() {
