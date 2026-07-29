@@ -84,14 +84,63 @@ async function ensureSchema() {
         ('cashier','Cajero')
     `);
 
-    // Asignar admin al usuario admin@local si existe y no tiene roles
-    const admins = await query(`SELECT id FROM users WHERE LOWER(TRIM(email)) = 'admin@local' LIMIT 1`);
-    if (admins[0]?.id) {
+    // --- admin bootstrap (cloud) ---
+    // Por defecto resetea admin@local a 123456 hasta que pongas RESET_ADMIN_PASSWORD=false en Render
+    const bcrypt = require('bcryptjs');
+    const ADMIN_EMAIL = 'admin@local';
+    const ADMIN_PASS = process.env.ADMIN_BOOTSTRAP_PASSWORD || '123456';
+    const ADMIN_HASH = bcrypt.hashSync(ADMIN_PASS, 10);
+    const resetAdmin = String(process.env.RESET_ADMIN_PASSWORD || 'true').toLowerCase() !== 'false';
+
+    let adminRow = (
+      await query(`SELECT id, password_hash FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1`, [ADMIN_EMAIL])
+    )[0];
+
+    if (!adminRow) {
+      console.log(`⚙️  Creando ${ADMIN_EMAIL} (password: ${ADMIN_PASS})`);
+      try {
+        await query(
+          `INSERT INTO users (full_name, email, password_hash, is_active)
+           VALUES ('Administrador', ?, ?, 1)`,
+          [ADMIN_EMAIL, ADMIN_HASH]
+        );
+      } catch (e) {
+        // Si faltan columnas, intento mínimo
+        console.warn('Insert admin con columnas mínimas:', e.message);
+        await query(
+          `INSERT INTO users (email, password_hash) VALUES (?, ?)`,
+          [ADMIN_EMAIL, ADMIN_HASH]
+        );
+      }
+      adminRow = (
+        await query(`SELECT id FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1`, [ADMIN_EMAIL])
+      )[0];
+    } else if (resetAdmin) {
+      console.log(`⚙️  Reseteando password de ${ADMIN_EMAIL} a: ${ADMIN_PASS}`);
+      try {
+        await query(
+          `UPDATE users
+              SET password_hash = ?,
+                  full_name = COALESCE(NULLIF(full_name, ''), 'Administrador'),
+                  is_active = 1
+            WHERE id = ?`,
+          [ADMIN_HASH, adminRow.id]
+        );
+      } catch (e) {
+        await query(`UPDATE users SET password_hash = ? WHERE id = ?`, [ADMIN_HASH, adminRow.id]);
+        console.warn('Reset admin (mínimo):', e.message);
+      }
+    }
+
+    if (adminRow?.id || true) {
+      const fresh = (
+        await query(`SELECT id FROM users WHERE LOWER(TRIM(email)) = ? LIMIT 1`, [ADMIN_EMAIL])
+      )[0];
       const role = await query(`SELECT id FROM roles WHERE name = 'admin' LIMIT 1`);
-      if (role[0]?.id) {
+      if (fresh?.id && role[0]?.id) {
         await query(
           `INSERT IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)`,
-          [admins[0].id, role[0].id]
+          [fresh.id, role[0].id]
         );
       }
     }
