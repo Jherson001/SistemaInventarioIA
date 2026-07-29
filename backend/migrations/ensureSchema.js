@@ -49,6 +49,39 @@ async function ensureSchema() {
       await query(`ALTER TABLE users ADD COLUMN password_hash VARCHAR(255) NULL`);
     }
 
+    // --- categories (Aiven a menudo viene incompleta) ---
+    if (await tableExists('categories')) {
+      if (!(await columnExists('categories', 'description'))) {
+        console.log('⚙️  Agregando categories.description');
+        await query(`ALTER TABLE categories ADD COLUMN description VARCHAR(255) NULL`);
+      }
+      if (!(await columnExists('categories', 'is_active'))) {
+        console.log('⚙️  Agregando categories.is_active');
+        await query(`ALTER TABLE categories ADD COLUMN is_active TINYINT(1) NOT NULL DEFAULT 1`);
+      }
+      if (!(await columnExists('categories', 'created_at'))) {
+        console.log('⚙️  Agregando categories.created_at');
+        await query(`ALTER TABLE categories ADD COLUMN created_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP`);
+      }
+      if (!(await columnExists('categories', 'updated_at'))) {
+        console.log('⚙️  Agregando categories.updated_at');
+        await query(`ALTER TABLE categories ADD COLUMN updated_at TIMESTAMP NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP`);
+      }
+    } else {
+      console.log('⚙️  Creando tabla categories');
+      await query(`
+        CREATE TABLE categories (
+          id INT AUTO_INCREMENT PRIMARY KEY,
+          name VARCHAR(100) NOT NULL UNIQUE,
+          description VARCHAR(255) NULL,
+          is_active TINYINT(1) NOT NULL DEFAULT 1,
+          created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+          updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP
+        ) ENGINE=InnoDB
+      `);
+    }
+
+
     // sincronizar name <-> full_name si ambas existen
     try {
       if (hasName) {
