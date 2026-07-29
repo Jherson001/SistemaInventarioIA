@@ -201,8 +201,8 @@ export default function Products() {
                   <th>Barcode</th>
                   <th className="!text-right">Costo</th>
                   <th className="!text-right">Precio</th>
-                  <th>Stock</th>
-                  <th className="!text-right">Min</th>
+                  <th>Hay</th>
+                  <th className="!text-right">Mín.</th>
                   {canEdit && <th className="!text-right">Acciones</th>}
                 </tr>
               </thead>

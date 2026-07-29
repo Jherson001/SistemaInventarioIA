@@ -88,7 +88,7 @@ export default function ProductForm({ initialData, onSubmit, onCancel, loading }
           <input name="price" type="number" step="0.01" min="0" className="input" value={form.price} onChange={handleChange} />
         </div>
         <div>
-          <label className="text-sm">Stock mínimo</label>
+          <label className="text-sm">Existencias mínimas</label>
           <input name="min_stock" type="number" min="0" className="input" value={form.min_stock} onChange={handleChange} />
         </div>
         <div>

@@ -4,7 +4,15 @@ import DashboardLayout from "../../components/layouts/DashboardLayout";
 import useApi from "../../hooks/useApi";
 import moment from "moment";
 import "moment/locale/es";
-import { LuPackage, LuTriangleAlert, LuBoxes, LuArrowLeftRight } from "react-icons/lu";
+import { LuPackage, LuTriangleAlert, LuBoxes, LuCircleX } from "react-icons/lu";
+
+moment.locale("es");
+
+const MOVE_LABEL = {
+  IN: "Entrada",
+  OUT: "Salida",
+  ADJUST: "Ajuste",
+};
 
 export default function Dashboard() {
   const api = useApi();
@@ -20,7 +28,11 @@ export default function Dashboard() {
           api.get("/stock-moves").catch(() => []),
         ]);
         setProducts(Array.isArray(prods) ? prods : []);
-        setMoves(Array.isArray(stockMoves) ? stockMoves.slice(0, 8) : stockMoves?.rows?.slice(0, 8) || []);
+        setMoves(
+          Array.isArray(stockMoves)
+            ? stockMoves.slice(0, 8)
+            : stockMoves?.rows?.slice(0, 8) || []
+        );
       } catch (e) {
         console.error(e);
       } finally {
@@ -46,7 +58,7 @@ export default function Dashboard() {
       products
         .filter((p) => Number(p.stock ?? 0) <= Number(p.min_stock ?? 0))
         .sort((a, b) => Number(a.stock ?? 0) - Number(b.stock ?? 0))
-        .slice(0, 6),
+        .slice(0, 8),
     [products]
   );
 
@@ -62,23 +74,30 @@ export default function Dashboard() {
   );
 
   return (
-    <DashboardLayout activeMenu="Dashboard">
-      <div className="space-y-7">
+    <DashboardLayout activeMenu="Inicio">
+      <div className="space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
-            <h2 className="page-title">Inventario</h2>
+            <h2 className="page-title">Panel de inventario</h2>
             <p className="page-subtitle capitalize">
-              {moment().format("dddd D [de] MMMM, YYYY")}
+              {moment().format("dddd D [de] MMMM [de] YYYY")}
             </p>
           </div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2">
             <Link to="/admin/products" className="btn-primary">
               Ver productos
             </Link>
             <Link to="/admin/stock-moves" className="btn-accent">
-              Movimiento stock
+              Registrar movimiento
             </Link>
           </div>
+        </div>
+
+        <div className="card !py-3 text-sm text-slate-600">
+          <strong className="text-slate-800">Cómo leer las alertas:</strong> el{" "}
+          <em>mínimo</em> lo defines tú en cada producto. Si la cantidad actual es
+          menor o igual a ese mínimo, aparece como <strong>bajo</strong>. Si llega a
+          0, aparece como <strong>sin existencias</strong>.
         </div>
 
         {loading ? (
@@ -94,60 +113,71 @@ export default function Dashboard() {
                 tone="bg-teal-700"
               />
               <StatCard
-                title="Stock OK"
+                title="Existencias OK"
                 value={metrics.ok}
                 subtext="Por encima del mínimo"
                 icon={<LuBoxes />}
                 tone="bg-[var(--color-sidebar)]"
               />
               <StatCard
-                title="Stock bajo"
+                title="Existencias bajas"
                 value={metrics.low}
                 subtext="En o bajo el mínimo"
                 icon={<LuTriangleAlert />}
                 tone="bg-amber-600"
               />
               <StatCard
-                title="Sin stock"
+                title="Sin existencias"
                 value={metrics.out}
                 subtext="Reponer cuanto antes"
-                icon={<LuArrowLeftRight />}
+                icon={<LuCircleX />}
                 tone="bg-red-600"
               />
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
               <div className="card">
-                <h3 className="font-bold text-slate-800 mb-4">Alertas de stock</h3>
+                <div className="flex items-center justify-between mb-1">
+                  <h3 className="font-bold text-slate-800">Alertas de existencias</h3>
+                  <Link to="/admin/products" className="text-sm text-teal-700 font-semibold">
+                    Ir a productos
+                  </Link>
+                </div>
+                <p className="text-xs text-slate-500 mb-4">
+                  Productos en 0 o por debajo de su mínimo.
+                </p>
                 {lowList.length === 0 ? (
-                  <p className="text-sm text-slate-400">Todo el stock está en buen nivel.</p>
+                  <p className="text-sm text-slate-400">Todo está en buen nivel.</p>
                 ) : (
                   <table className="data-table">
                     <thead>
                       <tr>
-                        <th>SKU</th>
                         <th>Producto</th>
-                        <th>Stock</th>
-                        <th>Min</th>
+                        <th>Hay</th>
+                        <th>Mínimo</th>
+                        <th>Estado</th>
                       </tr>
                     </thead>
                     <tbody>
-                      {lowList.map((p) => (
-                        <tr key={p.id}>
-                          <td>{p.sku}</td>
-                          <td>{p.name}</td>
-                          <td>
-                            <span
-                              className={`badge ${
-                                Number(p.stock ?? 0) <= 0 ? "badge-out" : "badge-low"
-                              }`}
-                            >
-                              {p.stock ?? 0}
-                            </span>
-                          </td>
-                          <td>{p.min_stock}</td>
-                        </tr>
-                      ))}
+                      {lowList.map((p) => {
+                        const s = Number(p.stock ?? 0);
+                        const sin = s <= 0;
+                        return (
+                          <tr key={p.id}>
+                            <td>
+                              <div className="font-medium">{p.name}</div>
+                              <div className="text-xs text-slate-400">{p.sku}</div>
+                            </td>
+                            <td className="font-semibold">{s}</td>
+                            <td>{p.min_stock ?? 0}</td>
+                            <td>
+                              <span className={`badge ${sin ? "badge-out" : "badge-low"}`}>
+                                {sin ? "Sin existencias" : "Bajo"}
+                              </span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 )}
@@ -167,8 +197,8 @@ export default function Dashboard() {
                     <thead>
                       <tr>
                         <th>Tipo</th>
-                        <th>SKU</th>
-                        <th>Cant.</th>
+                        <th>Producto</th>
+                        <th className="!text-right">Cant.</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -184,11 +214,16 @@ export default function Dashboard() {
                                     : "badge-low"
                               }`}
                             >
-                              {m.move_type}
+                              {MOVE_LABEL[m.move_type] || m.move_type}
                             </span>
                           </td>
-                          <td>{m.sku || "-"}</td>
-                          <td>{m.quantity}</td>
+                          <td>
+                            <div className="font-medium">{m.name || m.sku || "—"}</div>
+                            {m.name && m.sku ? (
+                              <div className="text-xs text-slate-400">{m.sku}</div>
+                            ) : null}
+                          </td>
+                          <td className="!text-right font-semibold">{m.quantity}</td>
                         </tr>
                       ))}
                     </tbody>

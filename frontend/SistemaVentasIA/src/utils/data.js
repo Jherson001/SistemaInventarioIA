@@ -11,7 +11,7 @@ import {
 export const SIDE_MENU_DATA = [
   {
     id: "01",
-    label: "Dashboard",
+    label: "Inicio",
     icon: LuLayoutDashboard,
     path: "/admin/dashboard",
   },
@@ -23,7 +23,7 @@ export const SIDE_MENU_DATA = [
   },
   {
     id: "03",
-    label: "Movimiento Stock",
+    label: "Movimientos",
     icon: LuArrowLeftRight,
     path: "/admin/stock-moves",
   },
@@ -35,7 +35,7 @@ export const SIDE_MENU_DATA = [
   },
   {
     id: "05",
-    label: "Insights",
+    label: "Análisis",
     icon: LuChartNoAxesCombined,
     path: "/admin/insights",
   },

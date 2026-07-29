@@ -31,9 +31,9 @@ function qtyClass(m) {
 function stockStatus(stock, min) {
   const s = Number(stock ?? 0);
   const m = Number(min ?? 0);
-  if (s <= 0) return { label: "Sin stock", className: "badge-out" };
-  if (s <= m) return { label: "Stock bajo", className: "badge-low" };
-  return { label: "Stock OK", className: "badge-ok" };
+  if (s <= 0) return { label: "Sin existencias", className: "badge-out" };
+  if (s <= m) return { label: "Existencias bajas", className: "badge-low" };
+  return { label: "Existencias OK", className: "badge-ok" };
 }
 
 function shortDate(value) {
@@ -194,7 +194,7 @@ export default function StockMoves() {
     : null;
 
   return (
-    <DashboardLayout activeMenu="Movimiento Stock">
+    <DashboardLayout activeMenu="Movimientos">
       <div className="space-y-4">
         <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
           <div>
@@ -255,7 +255,7 @@ export default function StockMoves() {
                         <strong>{p.name}</strong>
                         <span className="text-slate-400 ml-2">{p.sku}</span>
                       </span>
-                      <span className="text-slate-500 shrink-0">Stock {p.stock ?? 0}</span>
+                      <span className="text-slate-500 shrink-0">Hay {p.stock ?? 0}</span>
                     </button>
                   ))}
                   {productMatches.length === 0 && (
@@ -307,7 +307,7 @@ export default function StockMoves() {
             </div>
             <div className="flex flex-wrap items-center gap-4">
               <div className="text-center">
-                <p className="text-xs text-slate-500">Stock actual</p>
+                <p className="text-xs text-slate-500">Cantidad actual</p>
                 <p className="text-2xl font-bold text-slate-900">{filterProd.stock ?? 0}</p>
               </div>
               <div className="text-center">
