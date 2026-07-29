@@ -57,7 +57,7 @@ export default function Insights() {
   }, []);
 
   return (
-    <DashboardLayout activeMenu="/admin/insights">
+    <DashboardLayout activeMenu="Insights">
       <div className="max-w-6xl mx-auto p-4 space-y-6">
         <h1 className="text-xl font-semibold">Predicciones de Inventario</h1>
         

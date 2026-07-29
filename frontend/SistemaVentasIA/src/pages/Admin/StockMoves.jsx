@@ -101,14 +101,18 @@ export default function StockMoves() {
   };
 
   return (
-    <DashboardLayout>
-        <div className="max-w-6xl mx-auto p-4 space-y-4">
-        <div className="flex items-center justify-between">
-            <h1 className="text-xl font-semibold">Movimientos de stock</h1>
+    <DashboardLayout activeMenu="Movimiento Stock">
+        <div className="space-y-4">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+            <div>
+              <h1 className="page-title">Movimientos de stock</h1>
+              <p className="page-subtitle">Entradas y ajustes de inventario</p>
+            </div>
             {canCreate && (
-            <div className="flex gap-2">
-                <button className="btn btn-primary" onClick={()=>openNew("IN")}>Nueva entrada</button>
-                <button className="btn btn-primary" onClick={()=>openNew("ADJUST")}>Nuevo ajuste</button>
+            <div className="flex flex-wrap gap-2">
+                <button type="button" className="btn-primary" onClick={()=>openNew("IN")}>Entrada</button>
+                <button type="button" className="btn-accent" onClick={()=>openNew("OUT")}>Salida</button>
+                <button type="button" className="btn" onClick={()=>openNew("ADJUST")}>Ajuste</button>
             </div>
             )}
         </div>

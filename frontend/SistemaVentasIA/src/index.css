@@ -1,12 +1,22 @@
-@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700;1,9..40,400&family=Fraunces:opsz,wght@9..144,600;9..144,700&display=swap');
 
 @import "tailwindcss";
 
 @theme {
-  --font-display: "Poppins", "sans-serif";
+  --font-display: "DM Sans", "Segoe UI", sans-serif;
+  --font-brand: "Fraunces", Georgia, serif;
   --breakpoint-3xl: 1920px;
-  --color-primary: #1368EC;
-  --color-secundary: #F55151;
+  --color-primary: #0F766E;
+  --color-primary-dark: #0B5A54;
+  --color-accent: #D97706;
+  --color-accent-dark: #B45309;
+  --color-secundary: #DC2626;
+  --color-ink: #0F172A;
+  --color-muted: #64748B;
+  --color-surface: #EEF2F6;
+  --color-line: #D8DEE8;
+  --color-sidebar: #0F2744;
+  --color-sidebar-2: #163A5F;
 }
 
 @layer base {
@@ -15,52 +25,244 @@
   }
 
   body {
-    background-color: #fcfbfc;
+    background-color: var(--color-surface);
+    background-image:
+      radial-gradient(ellipse 80% 50% at 0% -10%, rgba(15, 118, 110, 0.12), transparent),
+      radial-gradient(ellipse 60% 40% at 100% 0%, rgba(217, 119, 6, 0.08), transparent);
+    color: var(--color-ink);
     overflow-x: hidden;
+    min-height: 100vh;
   }
 }
 
+.brand-font {
+  font-family: var(--font-brand);
+}
 
 .input-box {
-  @apply w-full flex justify-between gap-3 text-sm text-black bg-slate-100/50 rounded px-4 py-3 mb-4 mt-3 border border-slate-200 outline-none
+  @apply w-full flex justify-between gap-3 text-sm text-black bg-slate-100/50 rounded px-4 py-3 mb-4 mt-3 border border-slate-200 outline-none;
+}
+
+.btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--color-line);
+  background: #fff;
+  color: var(--color-ink);
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  transition: background 0.15s ease, border-color 0.15s ease;
+}
+
+.btn:hover {
+  background: #f8fafc;
+  border-color: #cbd5e1;
+}
+
+.btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .btn-primary {
-  @apply text-sm font-medium text-white bg-primary shadow-lg shadow-purple-600/5 p-[10px] rounded-md my-1 hover:bg-blue-600/15 hover:text-blue-600 cursor-pointer
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--color-primary);
+  background: var(--color-primary) !important;
+  color: #fff !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  line-height: 1.2;
+  cursor: pointer;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.08);
+  transition: background 0.15s ease, box-shadow 0.15s ease;
+}
+
+.btn-primary:hover {
+  background: var(--color-primary-dark) !important;
+  color: #fff !important;
+  box-shadow: 0 4px 14px rgba(15, 118, 110, 0.28);
+}
+
+.btn-primary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+  box-shadow: none;
+}
+
+.btn-accent {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--color-accent);
+  background: var(--color-accent) !important;
+  color: #fff !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-accent:hover {
+  background: var(--color-accent-dark) !important;
 }
 
 .btn-delete {
-  @apply w-full text-sm font-medium text-white bg-secundary shadow-lg shadow-purple-600/5 p-[10px] rounded-md my-1 hover:bg-red-600/15 hover:text-red-600 cursor-pointer
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.55rem 0.95rem;
+  border-radius: 0.55rem;
+  border: 1px solid var(--color-secundary);
+  background: var(--color-secundary) !important;
+  color: #fff !important;
+  font-size: 0.875rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.btn-delete:hover {
+  background: #b91c1c !important;
+  color: #fff !important;
+}
+
+.input {
+  width: 100%;
+  font-size: 0.875rem;
+  color: var(--color-ink);
+  outline: none;
+  background: #fff;
+  border: 1px solid var(--color-line);
+  padding: 0.55rem 0.75rem;
+  border-radius: 0.55rem;
+}
+
+.input:focus {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.18);
+}
+
+.input::placeholder {
+  color: #94a3b8;
 }
 
 .card {
-  @apply bg-white p-6 rounded-2xl shadow-md shadow-gray-100 border border-gray-200/50
+  background: rgba(255, 255, 255, 0.92);
+  padding: 1.25rem;
+  border-radius: 1rem;
+  border: 1px solid var(--color-line);
+  box-shadow: 0 8px 24px rgba(15, 39, 68, 0.06);
+  backdrop-filter: blur(6px);
+}
+
+.page-title {
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--color-ink);
+  letter-spacing: -0.02em;
+}
+
+.page-subtitle {
+  font-size: 0.9rem;
+  color: var(--color-muted);
+  margin-top: 0.25rem;
+}
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.15rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+}
+
+.badge-ok {
+  background: #ccfbf1;
+  color: #0f766e;
+}
+
+.badge-low {
+  background: #ffedd5;
+  color: #c2410c;
+}
+
+.badge-out {
+  background: #fee2e2;
+  color: #b91c1c;
+}
+
+.data-table {
+  width: 100%;
+  font-size: 0.875rem;
+  border-collapse: separate;
+  border-spacing: 0;
+}
+
+.data-table thead th {
+  text-align: left;
+  padding: 0.75rem 0.85rem;
+  background: #f1f5f9;
+  color: #475569;
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+  border-bottom: 1px solid var(--color-line);
+}
+
+.data-table tbody td {
+  padding: 0.8rem 0.85rem;
+  border-bottom: 1px solid #eef2f7;
+  color: var(--color-ink);
+}
+
+.data-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.data-table tbody tr:hover {
+  background: #f0fdfa;
 }
 
 .card-btn {
-  @apply flex items-center gap-3 text-[12px] font-medium text-gray-700 hover:text-primary bg-gray-50 hover:bg-blue-50 px-4 py-1.5 rounded-lg border border-gray-200/50 cursor-pointer
+  @apply flex items-center gap-3 text-[12px] font-medium text-gray-700 hover:text-primary bg-gray-50 hover:bg-teal-50 px-4 py-1.5 rounded-lg border border-gray-200/50 cursor-pointer;
 }
 
 .card-btn-fill {
-  @apply flex items-center gap-3 text-[12px] font-medium text-white hover:text-primary bg-primary hover:bg-blue-50 px-4 py-1.5 rounded-lg border border-primary cursor-pointer
+  @apply flex items-center gap-3 text-[12px] font-medium text-white bg-primary px-4 py-1.5 rounded-lg border border-primary cursor-pointer;
 }
 
 .form-card {
-  @apply bg-white p-6 rounded-lg shadow-md shadow-gray-100 border border-gray-200/50
+  @apply bg-white p-6 rounded-lg border border-gray-200;
 }
 
 .form-input {
-  @apply w-full text-sm text-black outline-none bg-white border border-slate-100 px-2.5 py-3 rounded-md mt-2 placeholder:text-gray-500
+  @apply w-full text-sm text-black outline-none bg-white border border-slate-200 px-2.5 py-3 rounded-md mt-2 placeholder:text-gray-500;
 }
 
 .add-btn {
-  @apply w-full flex items-center justify-center gap-1.5 text-xs md:text-sm font-medium text-primary whitespace-nowrap bg-blue-50 border border-blue-100 rounded-lg px-4 py-2 cursor-pointer 
+  @apply w-full flex items-center justify-center gap-1.5 text-xs md:text-sm font-medium text-primary whitespace-nowrap bg-teal-50 border border-teal-100 rounded-lg px-4 py-2 cursor-pointer;
 }
 
 .download-btn {
-  @apply items-center gap-3 text-xs md:text-[13px] text-lime-900 bg-lime-100 px-2 md:px-3 py-2 rounded border border-lime-200 hover:border-lime-400 cursor-pointer
+  @apply items-center gap-3 text-xs md:text-[13px] text-lime-900 bg-lime-100 px-2 md:px-3 py-2 rounded border border-lime-200 hover:border-lime-400 cursor-pointer;
 }
 
 .user-card {
-  @apply bg-white p-4 rounded-xl shadow-md shadow-gray-100 border border-gray-200/50
+  @apply bg-white p-4 rounded-xl border border-gray-200;
 }

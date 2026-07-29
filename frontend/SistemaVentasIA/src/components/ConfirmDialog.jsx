@@ -7,7 +7,7 @@ export default function ConfirmDialog({ open, title="Confirmar", message, onCanc
         <p className="text-sm text-gray-700 mb-4">{message}</p>
         <div className="flex justify-end gap-2">
           <button className="btn" onClick={onCancel}>Cancelar</button>
-          <button className="btn btn-primary" onClick={onConfirm}>{confirmText}</button>
+          <button className="btn-primary" onClick={onConfirm}>{confirmText}</button>
         </div>
       </div>
     </div>

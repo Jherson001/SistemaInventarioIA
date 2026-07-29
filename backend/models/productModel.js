@@ -18,12 +18,27 @@ const ProductModel = {
     return rows[0] || null;
   },
 
+  async findByBarcode(barcode) {
+    const code = String(barcode || "").trim();
+    if (!code) return null;
+    const sql = `
+      SELECT * FROM products
+      WHERE is_active = 1
+        AND (barcode = ? OR sku = ?)
+      LIMIT 1;
+    `;
+    const rows = await query(sql, [code, code]);
+    return rows[0] || null;
+  },
+
   async create(data) {
     const {
       sku, barcode = null, name, description = null,
       category_id = null, cost = 0, price = 0,
-      min_stock = 0, is_active = 1, stock = 0 // Agregado stock inicial
+      min_stock = 0, is_active = 1, stock = 0
     } = data;
+
+    const cleanBarcode = barcode && String(barcode).trim() ? String(barcode).trim() : null;
 
     const sql = `
       INSERT INTO products
@@ -31,7 +46,7 @@ const ProductModel = {
       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW());
     `;
     const result = await query(sql, [
-      sku, barcode, name, description, category_id, cost, price, min_stock, is_active, stock
+      sku, cleanBarcode, name, description, category_id, cost, price, min_stock, is_active, stock
     ]);
     return await this.findById(result.insertId);
   },
@@ -40,8 +55,12 @@ const ProductModel = {
     const {
       sku, barcode = null, name, description = null,
       category_id = null, cost = 0, price = 0,
-      min_stock = 0, is_active = 1, stock = 0
+      min_stock = 0, is_active = 1, stock
     } = data;
+
+    const cleanBarcode = barcode && String(barcode).trim() ? String(barcode).trim() : null;
+    const current = await this.findById(id);
+    const nextStock = stock === undefined || stock === null ? (current?.stock ?? 0) : stock;
 
     const sql = `
       UPDATE products SET
@@ -50,8 +69,8 @@ const ProductModel = {
       WHERE id = ?;
     `;
     await query(sql, [
-      sku, barcode, name, description, category_id,
-      cost, price, min_stock, is_active, stock, id
+      sku, cleanBarcode, name, description, category_id,
+      cost, price, min_stock, is_active, nextStock, id
     ]);
     return await this.findById(id);
   },

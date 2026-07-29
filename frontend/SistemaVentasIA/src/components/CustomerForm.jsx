@@ -125,7 +125,7 @@ export default function CustomerForm({ initialData, onSubmit, onCancel, loading 
 
       <div className="flex gap-2 justify-end pt-2">
         <button type="button" onClick={onCancel} className="btn">Cancelar</button>
-        <button disabled={loading} className="btn btn-primary">
+        <button disabled={loading} className="btn-primary">
           {loading ? "Guardando..." : "Guardar"}
         </button>
       </div>

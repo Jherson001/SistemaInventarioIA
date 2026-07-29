@@ -1,10 +1,13 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import DashboardLayout from "../components/layouts/DashboardLayout"; 
+import DashboardLayout from "../components/layouts/DashboardLayout";
+import { API_BASE_URL } from "../utils/config";
+import { downloadCsv } from "../utils/csv";
 
 export default function LowRotationPage() {
   const [rows, setRows] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [err, setErr] = useState("");
   const [minScore, setMinScore] = useState(0.6);
   const [limit, setLimit] = useState(100);
   const navigate = useNavigate();
@@ -15,12 +18,11 @@ export default function LowRotationPage() {
 
   async function fetchData() {
     setLoading(true);
+    setErr("");
     try {
-      const token = localStorage.getItem("token");
-      console.log("Token enviado:", token);
-
+      const token = localStorage.getItem("auth_token") || localStorage.getItem("token");
       const res = await fetch(
-        `https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation?min_score=${minScore}&limit=${limit}`,
+        `${API_BASE_URL}/dashboard/low-rotation?min_score=${minScore}&limit=${limit}`,
         {
           headers: {
             Authorization: `Bearer ${token}`,
@@ -29,20 +31,17 @@ export default function LowRotationPage() {
         }
       );
 
-      console.log("Status de la respuesta:", res.status);
-
       if (res.status === 401) {
-        console.warn("Error 401: El servidor rechazó el token");
         navigate("/login");
         return;
       }
 
       const data = await res.json();
-      console.log("Datos recibidos:", data);
-
+      if (!res.ok) throw new Error(data.error || data.message || "Error al cargar");
       setRows(data.rows || []);
     } catch (e) {
-      console.error("Error en fetchData:", e);
+      setErr(e.message || "Error de conexión");
+      setRows([]);
     } finally {
       setLoading(false);
     }
@@ -50,9 +49,9 @@ export default function LowRotationPage() {
 
   async function markFeedback(productId, isCorrect, note = "") {
     try {
-      const token = localStorage.getItem("token");
+      const token = localStorage.getItem("auth_token") || localStorage.getItem("token");
       const res = await fetch(
-        `https://sistema-inventario-backend-9im6.onrender.com/api/dashboard/low-rotation/${productId}/feedback`,
+        `${API_BASE_URL}/dashboard/low-rotation/${productId}/feedback`,
         {
           method: "POST",
           headers: {
@@ -63,11 +62,8 @@ export default function LowRotationPage() {
         }
       );
 
-      if (res.ok) {
-        fetchData();
-      } else {
-        alert("Error al guardar feedback");
-      }
+      if (res.ok) fetchData();
+      else alert("Error al guardar feedback");
     } catch (e) {
       console.error(e);
     }
@@ -76,56 +72,45 @@ export default function LowRotationPage() {
   function exportCSV() {
     if (!rows.length) return;
 
-    const headers = [
-      "product_id",
-      "sku",
-      "name",
-      "score",
-      "label",
-      "reason",
-      "days_since_last_sale",
-      "days_of_inventory",
-      "weekly_90",
-    ];
-
-    const csvRows = [
-      headers.join(","),
-      ...rows.map((r) =>
-        [
-          r.product_id,
-          JSON.stringify(r.product_sku || ""),
-          JSON.stringify(r.product_name || ""),
-          r.score,
-          r.label,
-          JSON.stringify(r.reason || ""),
-          r.days_since_last_sale ?? "",
-          r.days_of_inventory ?? "",
-          r.weekly_90 ?? "",
-        ].join(",")
-      ),
-    ];
-
-    const blob = new Blob([csvRows.join("\n")], {
-      type: "text/csv;charset=utf-8;",
-    });
-
-    const url = URL.createObjectURL(blob);
-    const a = document.createElement("a");
-    a.href = url;
-    a.download = `low_rotation_${new Date().toISOString().slice(0, 10)}.csv`;
-    a.click();
-    URL.revokeObjectURL(url);
+    downloadCsv(
+      `baja_rotacion_${new Date().toISOString().slice(0, 10)}.csv`,
+      [
+        { key: "product_id", label: "ID Producto" },
+        { key: "product_sku", label: "SKU" },
+        { key: "product_name", label: "Producto" },
+        { key: "score", label: "Score" },
+        { key: "label", label: "Etiqueta" },
+        { key: "reason", label: "Motivo" },
+        { key: "days_since_last_sale", label: "Dias sin venta" },
+        { key: "days_of_inventory", label: "Dias inventario" },
+        { key: "weekly_90", label: "Unidades semanales (90d)" },
+      ],
+      rows.map((r) => ({
+        ...r,
+        score: r.score != null ? Number(r.score).toFixed(3) : "",
+        product_sku: r.product_sku ?? "",
+        product_name: r.product_name ?? "",
+        label: r.label ?? "",
+        reason: r.reason ?? "",
+        days_since_last_sale: r.days_since_last_sale ?? "",
+        days_of_inventory: r.days_of_inventory ?? "",
+        weekly_90: r.weekly_90 ?? "",
+      }))
+    );
   }
 
   return (
-    <DashboardLayout activeMenu="/admin/low-rotation">
-      <div className="p-6">
-        <div className="flex items-center justify-between mb-4">
-          <h1 className="text-xl font-semibold">
-            Productos de baja rotación
-          </h1>
-          <div className="flex gap-2 items-center">
-            <label className="text-sm">Score mínimo</label>
+    <DashboardLayout activeMenu="Baja rotación">
+      <div className="space-y-4">
+        <div className="flex flex-col lg:flex-row lg:items-end lg:justify-between gap-3">
+          <div>
+            <h1 className="page-title">Baja rotación</h1>
+            <p className="page-subtitle">
+              Productos que se mueven poco — útil para promociones o reposición.
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2 items-center">
+            <label className="text-sm text-slate-600">Score mínimo</label>
             <input
               type="number"
               step="0.05"
@@ -133,89 +118,87 @@ export default function LowRotationPage() {
               max={1}
               value={minScore}
               onChange={(e) => setMinScore(Number(e.target.value))}
-              className="border rounded px-2 py-1 w-24"
+              className="input !w-24"
             />
-            <button
-              onClick={fetchData}
-              className="px-3 py-1 bg-blue-600 text-white rounded"
-            >
+            <button type="button" onClick={fetchData} className="btn-primary">
               Refrescar
             </button>
             <button
+              type="button"
               onClick={exportCSV}
-              className="px-3 py-1 bg-green-600 text-white rounded"
+              className="btn-accent"
+              disabled={!rows.length}
             >
               Exportar CSV
             </button>
           </div>
         </div>
 
+        {err && (
+          <div className="bg-red-50 text-red-700 p-3 rounded-lg border border-red-200 text-sm">
+            {err}
+          </div>
+        )}
+
         {loading ? (
-          <div className="text-gray-500">Cargando…</div>
+          <p className="text-slate-500">Cargando…</p>
         ) : (
-          <div className="overflow-x-auto border rounded-lg">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-50">
+          <div className="card !p-0 overflow-x-auto">
+            <table className="data-table">
+              <thead>
                 <tr>
-                  <th className="px-3 py-2 text-left">#</th>
-                  <th className="px-3 py-2 text-left">SKU</th>
-                  <th className="px-3 py-2 text-left">Producto</th>
-                  <th className="px-3 py-2 text-left">Score</th>
-                  <th className="px-3 py-2 text-left">Etiqueta</th>
-                  <th className="px-3 py-2 text-left">Motivo</th>
-                  <th className="px-3 py-2 text-left">Días sin venta</th>
-                  <th className="px-3 py-2 text-left">Días inventario</th>
-                  <th className="px-3 py-2 text-left">u/sem (90d)</th>
-                  <th className="px-3 py-2 text-left">Acciones</th>
+                  <th>#</th>
+                  <th>SKU</th>
+                  <th>Producto</th>
+                  <th>Score</th>
+                  <th>Etiqueta</th>
+                  <th>Motivo</th>
+                  <th>Días sin venta</th>
+                  <th>Días inventario</th>
+                  <th>u/sem (90d)</th>
+                  <th>Acciones</th>
                 </tr>
               </thead>
               <tbody>
                 {rows.map((r, idx) => (
-                  <tr key={r.product_id} className="border-t">
-                    <td className="px-3 py-2">{idx + 1}</td>
-                    <td className="px-3 py-2">
-                      {r.product_sku ?? "-"}
+                  <tr key={`${r.product_id}-${idx}`}>
+                    <td>{idx + 1}</td>
+                    <td className="font-medium">{r.product_sku ?? "—"}</td>
+                    <td>{r.product_name || "—"}</td>
+                    <td className="font-semibold">{Number(r.score).toFixed(3)}</td>
+                    <td>
+                      <span className="badge badge-low uppercase">{r.label || "—"}</span>
                     </td>
-                    <td className="px-3 py-2">{r.product_name}</td>
-                    <td className="px-3 py-2 font-medium">
-                      {Number(r.score).toFixed(3)}
-                    </td>
-                    <td className="px-3 py-2 text-red-600 font-bold uppercase">
-                      {r.label}
-                    </td>
-                    <td className="px-3 py-2">{r.reason}</td>
-                    <td className="px-3 py-2">
-                      {r.days_since_last_sale} días
-                    </td>
-                    <td className="px-3 py-2">
-                      {r.days_of_inventory}
-                    </td>
-                    <td className="px-3 py-2">{r.weekly_90}</td>
-                    <td className="px-3 py-2 flex gap-2">
-                      <button
-                        onClick={() => navigate(`/admin/products`)}
-                        className="px-2 py-1 border rounded text-xs"
-                      >
-                        Ver
-                      </button>
-                      <button
-                        onClick={() => {
-                          if (confirm("¿Marcar como correcto?"))
-                            markFeedback(r.product_id, true);
-                        }}
-                        className="px-2 py-1 bg-green-100 rounded text-xs"
-                      >
-                        OK
-                      </button>
+                    <td className="text-slate-600">{r.reason || "—"}</td>
+                    <td>{r.days_since_last_sale ?? "—"}</td>
+                    <td>{r.days_of_inventory ?? "—"}</td>
+                    <td>{r.weekly_90 ?? "—"}</td>
+                    <td>
+                      <div className="inline-flex gap-2">
+                        <button
+                          type="button"
+                          className="btn !py-1 !px-2 text-xs"
+                          onClick={() => navigate(`/admin/products`)}
+                        >
+                          Ver
+                        </button>
+                        <button
+                          type="button"
+                          className="btn-primary !py-1 !px-2 text-xs"
+                          onClick={() => {
+                            if (confirm("¿Marcar como revisado (OK)?"))
+                              markFeedback(r.product_id, true);
+                          }}
+                        >
+                          OK
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
                 {rows.length === 0 && (
                   <tr>
-                    <td
-                      colSpan={10}
-                      className="px-3 py-6 text-center text-gray-500"
-                    >
+                    <td colSpan={10} className="!text-center text-slate-500 py-8">
                       Sin resultados
                     </td>
                   </tr>

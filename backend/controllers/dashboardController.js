@@ -58,27 +58,43 @@ const DashboardController = {
     }
   },
 
-  // Lógica de Baja Rotación profesional: Filtra productos que ya tienen feedback
+  // Usa low_rotation_flags (tabla real) + datos del producto
   async getLowRotation(req, res, next) {
     try {
-      const sql = `
-        SELECT 
-          p.id as product_id, 
-          p.sku as product_sku, 
-          p.name as product_name, 
-          0.85 as score, 
-          'low_rotation' as label, 
-          'Sin ventas recientes' as reason, 
-          IFNULL(DATEDIFF(NOW(), (SELECT MAX(s.sold_at) FROM sale_items si JOIN sales s ON si.sale_id = s.id WHERE si.product_id = p.id)), DATEDIFF(NOW(), p.created_at)) as days_since_last_sale, 
-          p.stock as days_of_inventory, 
-          0 as weekly_90 
-        FROM products p 
-        WHERE p.stock > 0 
-        AND p.id NOT IN (SELECT product_id FROM low_rotation_feedback)
-        ORDER BY days_since_last_sale DESC
-        LIMIT 10
-      `;
-      const results = await db.query(sql);
+      const minScore = Number(req.query.min_score ?? 0.6);
+      const limit = Math.min(Number(req.query.limit ?? 100) || 100, 500);
+
+      const results = await db.query(
+        `
+        SELECT
+          t.product_id,
+          p.sku AS product_sku,
+          p.name AS product_name,
+          t.score,
+          t.label,
+          t.reason,
+          t.days_since_last_sale,
+          t.days_of_inventory,
+          t.weekly_90,
+          t.admin_feedback,
+          t.is_reviewed,
+          t.flagged_at
+        FROM low_rotation_flags t
+        JOIN (
+          SELECT product_id, MAX(flagged_at) AS max_date
+          FROM low_rotation_flags
+          GROUP BY product_id
+        ) last
+          ON t.product_id = last.product_id AND t.flagged_at = last.max_date
+        LEFT JOIN products p ON p.id = t.product_id
+        WHERE t.score >= ?
+          AND IFNULL(t.is_reviewed, 0) = 0
+        ORDER BY t.score DESC
+        LIMIT ?
+        `,
+        [minScore, limit]
+      );
+
       res.json({ rows: results });
     } catch (err) {
       console.error("❌ Error Low Rotation:", err);
@@ -86,10 +102,8 @@ const DashboardController = {
     }
   },
 
-  // Registro de Feedback: Robusto y previene duplicados
   async postFeedback(req, res, next) {
     try {
-      // El ID puede venir de la URL o del body dependiendo de cómo lo envíe tu frontend
       const product_id = req.params.id || req.body.product_id;
       const { is_correct, note } = req.body;
 
@@ -98,10 +112,14 @@ const DashboardController = {
       }
 
       await db.query(
-        `INSERT INTO low_rotation_feedback (product_id, is_correct, note) 
-         VALUES (?, ?, ?) 
-         ON DUPLICATE KEY UPDATE is_correct = VALUES(is_correct), note = VALUES(note)`,
-        [product_id, is_correct ? 1 : 0, note || ""]
+        `
+        UPDATE low_rotation_flags
+        SET admin_feedback = ?, is_reviewed = 1
+        WHERE product_id = ?
+        ORDER BY flagged_at DESC
+        LIMIT 1
+        `,
+        [note || (is_correct ? "CORRECTO" : "INCORRECTO"), product_id]
       );
 
       res.json({ ok: true, message: "Feedback procesado" });

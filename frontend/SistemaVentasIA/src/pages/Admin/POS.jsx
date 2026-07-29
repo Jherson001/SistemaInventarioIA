@@ -96,7 +96,7 @@ export default function POS() {
             </div>
 
             <div className="flex justify-end mt-4">
-            <button disabled={posting} className="btn btn-primary" onClick={submit}>
+            <button disabled={posting} type="button" className="btn-primary" onClick={submit}>
                 {posting ? "Procesando..." : "Confirmar venta"}
             </button>
             </div>

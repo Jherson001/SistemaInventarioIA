@@ -23,45 +23,34 @@ export default function Login() {
 
   return (
     <AuthLayout>
-      <div className="min-h-[60vh] grid place-items-center bg-gray-50">
-        <form
-          onSubmit={onSubmit}
-          className="w-full max-w-sm bg-white border rounded-xl shadow p-6"
-        >
-          <h1 className="text-xl font-semibold mb-4">Iniciar sesión</h1>
+      <form onSubmit={onSubmit} className="w-full max-w-sm card">
+        <h1 className="page-title text-xl mb-1">Iniciar sesión</h1>
+        <p className="page-subtitle mb-5">Accede a tu inventario Zuria</p>
 
-          {err && <p className="text-red-600 text-sm mb-3">{err}</p>}
+        {err && <p className="text-red-600 text-sm mb-3">{err}</p>}
 
-          <label className="text-sm mb-1 block">Email</label>
-          <input
-            className="mb-3 block w-full rounded-lg border border-gray-300 px-3 py-2
-                      focus:outline-none focus:ring-2 focus:ring-blue-500"
-            type="email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
+        <label className="text-sm mb-1 block font-medium">Email</label>
+        <input
+          className="input mb-3"
+          type="email"
+          value={email}
+          onChange={(e) => setEmail(e.target.value)}
+          required
+        />
 
-          <label className="text-sm mb-1 block">Contraseña</label>
-          <input
-            className="mb-4 block w-full rounded-lg border border-gray-300 px-3 py-2
-                      focus:outline-none focus:ring-2 focus:ring-blue-500"
-            type="password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
+        <label className="text-sm mb-1 block font-medium">Contraseña</label>
+        <input
+          className="input mb-5"
+          type="password"
+          value={password}
+          onChange={(e) => setPassword(e.target.value)}
+          required
+        />
 
-          <button
-            disabled={loading}
-            className="w-full inline-flex items-center justify-center rounded-lg
-                      bg-blue-600 text-white px-4 py-2 font-medium
-                      hover:bg-blue-700 disabled:opacity-50 transition"
-          >
-            {loading ? "Ingresando..." : "Ingresar"}
-          </button>
-        </form>
-      </div>
+        <button disabled={loading} className="btn-primary w-full">
+          {loading ? "Ingresando..." : "Ingresar"}
+        </button>
+      </form>
     </AuthLayout>
   );
 }

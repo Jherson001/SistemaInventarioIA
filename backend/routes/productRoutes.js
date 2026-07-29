@@ -4,11 +4,14 @@ const { authRequired, requireRoles } = require('../middlewares/auth');
 
 const router = express.Router();
 
+router.use(authRequired);
+
 router.get('/', ctrl.list);
+router.get('/barcode/:code', ctrl.getByBarcode);
 router.get('/:id', ctrl.get);
 
-router.post('/', authRequired, requireRoles('admin', 'manager'), ctrl.create);
-router.put('/:id', authRequired, requireRoles('admin', 'manager'), ctrl.update);
-router.delete('/:id', authRequired, requireRoles('admin', 'manager'), ctrl.remove);
+router.post('/', requireRoles('admin', 'manager'), ctrl.create);
+router.put('/:id', requireRoles('admin', 'manager'), ctrl.update);
+router.delete('/:id', requireRoles('admin', 'manager'), ctrl.remove);
 
 module.exports = router;

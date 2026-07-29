@@ -15,25 +15,36 @@ const StockMoveController = {
       if (!product_id || !move_type || quantity === undefined) {
         return res.status(400).json({ error: 'product_id, move_type y quantity son requeridos' });
       }
-      if (!['IN', 'ADJUST'].includes(move_type)) {
-        return res.status(400).json({ error: "move_type debe ser 'IN' o 'ADJUST'" });
+
+      const allowed = ['IN', 'OUT', 'ADJUST'];
+      if (!allowed.includes(move_type)) {
+        return res.status(400).json({ error: "move_type debe ser 'IN', 'OUT' o 'ADJUST'" });
       }
+
       if (!(await StockMove.productExists(product_id))) {
         return res.status(404).json({ error: 'Producto no encontrado' });
       }
 
-      const qty = Number(quantity);
+      let qty = Number(quantity);
       if (!Number.isFinite(qty) || qty === 0) {
         return res.status(400).json({ error: 'quantity debe ser un número distinto de 0' });
       }
-      if (move_type === 'IN' && qty < 0) {
-        return res.status(400).json({ error: 'quantity debe ser positivo para IN' });
+
+      // IN/OUT: cantidad siempre positiva; el signo lo define el tipo
+      if (move_type === 'IN' || move_type === 'OUT') {
+        qty = Math.abs(qty);
       }
-      if (move_type === 'ADJUST' && qty < 0) {
-        const current = await StockMove.currentStock(product_id);
-        if (current + qty < 0) {
-          return res.status(409).json({ error: 'Ajuste inválido: dejaría stock negativo' });
-        }
+
+      const current = await StockMove.currentStock(product_id);
+
+      if (move_type === 'OUT' && current < qty) {
+        return res.status(409).json({
+          error: `Stock insuficiente. Disponible: ${current}, solicitado: ${qty}`
+        });
+      }
+
+      if (move_type === 'ADJUST' && current + qty < 0) {
+        return res.status(409).json({ error: 'Ajuste inválido: dejaría stock negativo' });
       }
 
       const created = await StockMove.create({

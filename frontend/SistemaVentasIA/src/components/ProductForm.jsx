@@ -1,4 +1,5 @@
 import { useEffect, useState } from "react";
+import BarcodeScanner from "./BarcodeScanner";
 
 const empty = {
   sku: "", barcode: "", name: "", description: "",
@@ -8,6 +9,7 @@ const empty = {
 export default function ProductForm({ initialData, onSubmit, onCancel, loading }) {
   const [form, setForm] = useState(empty);
   const [err, setErr] = useState("");
+  const [scanOpen, setScanOpen] = useState(false);
 
   useEffect(() => {
     setForm(initialData ? { ...empty, ...initialData } : empty);
@@ -22,9 +24,17 @@ export default function ProductForm({ initialData, onSubmit, onCancel, loading }
     setForm(f => ({ ...f, [name]: type === "number" ? Number(v) : v }));
   };
 
+  const onBarcodeScanned = (code) => {
+    setForm(f => ({
+      ...f,
+      barcode: code,
+      // Si aún no hay SKU, lo rellenamos con el código escaneado
+      sku: f.sku?.trim() ? f.sku : code,
+    }));
+  };
+
   const submit = (e) => {
     e.preventDefault();
-    // Validación básica
     if (!form.sku.trim()) return setErr("SKU es requerido");
     if (!form.name.trim()) return setErr("Nombre es requerido");
     if (form.price === "" || isNaN(form.price) || Number(form.price) < 0) return setErr("Precio inválido");
@@ -44,7 +54,22 @@ export default function ProductForm({ initialData, onSubmit, onCancel, loading }
         </div>
         <div>
           <label className="text-sm">Código de barras</label>
-          <input name="barcode" className="input" value={form.barcode || ""} onChange={handleChange} />
+          <div className="flex gap-2">
+            <input
+              name="barcode"
+              className="input flex-1"
+              value={form.barcode || ""}
+              onChange={handleChange}
+              placeholder="Escanear o escribir..."
+            />
+            <button
+              type="button"
+              className="btn-primary whitespace-nowrap shrink-0"
+              onClick={() => setScanOpen(true)}
+            >
+              Escanear
+            </button>
+          </div>
         </div>
         <div className="sm:col-span-2">
           <label className="text-sm">Nombre *</label>
@@ -77,10 +102,17 @@ export default function ProductForm({ initialData, onSubmit, onCancel, loading }
 
       <div className="flex gap-2 justify-end pt-2">
         <button type="button" onClick={onCancel} className="btn">Cancelar</button>
-        <button disabled={loading} className="btn btn-primary">
+        <button disabled={loading} type="submit" className="btn-primary">
           {loading ? "Guardando..." : "Guardar"}
         </button>
       </div>
+
+      <BarcodeScanner
+        open={scanOpen}
+        title="Escanear código del producto"
+        onScan={onBarcodeScanned}
+        onClose={() => setScanOpen(false)}
+      />
     </form>
   );
 }

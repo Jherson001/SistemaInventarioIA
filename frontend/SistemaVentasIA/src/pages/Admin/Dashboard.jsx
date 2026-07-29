@@ -1,144 +1,204 @@
-import React, { useEffect, useState } from 'react'
-import DashboardLayout from '../../components/layouts/DashboardLayout'
-import useApi from '../../hooks/useApi'
-import moment from 'moment'
-import 'moment/locale/es'
-
-import { LuDollarSign, LuShoppingCart, LuPackage, LuTrendingUp, LuTrophy } from 'react-icons/lu'
-import { BarChart, Bar, XAxis, YAxis, Tooltip, CartesianGrid, ResponsiveContainer } from 'recharts'
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
+import DashboardLayout from "../../components/layouts/DashboardLayout";
+import useApi from "../../hooks/useApi";
+import moment from "moment";
+import "moment/locale/es";
+import { LuPackage, LuTriangleAlert, LuBoxes, LuArrowLeftRight } from "react-icons/lu";
 
 export default function Dashboard() {
   const api = useApi();
-  const [stats, setStats] = useState(null);
+  const [products, setProducts] = useState([]);
+  const [moves, setMoves] = useState([]);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    fetchDashboardData();
+    (async () => {
+      try {
+        const [prods, stockMoves] = await Promise.all([
+          api.get("/products"),
+          api.get("/stock-moves").catch(() => []),
+        ]);
+        setProducts(Array.isArray(prods) ? prods : []);
+        setMoves(Array.isArray(stockMoves) ? stockMoves.slice(0, 8) : stockMoves?.rows?.slice(0, 8) || []);
+      } catch (e) {
+        console.error(e);
+      } finally {
+        setLoading(false);
+      }
+    })();
   }, []);
 
-  const fetchDashboardData = async () => {
-    try {
-      const data = await api.get('/dashboard/stats');
-      setStats(data);
-    } catch (error) {
-      console.error("Error cargando dashboard:", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  const metrics = useMemo(() => {
+    const active = products.filter((p) => Number(p.is_active) !== 0);
+    const out = active.filter((p) => Number(p.stock ?? 0) <= 0).length;
+    const low = active.filter((p) => {
+      const stock = Number(p.stock ?? 0);
+      const min = Number(p.min_stock ?? 0);
+      return stock > 0 && stock <= min;
+    }).length;
+    const ok = active.length - out - low;
+    return { total: active.length, out, low, ok };
+  }, [products]);
 
-  const StatCard = ({ title, value, subtext, icon, color }) => (
-    <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100 flex items-center gap-4">
-      <div className={`p-4 rounded-full ${color} text-white text-2xl`}>
-        {icon}
-      </div>
+  const lowList = useMemo(
+    () =>
+      products
+        .filter((p) => Number(p.stock ?? 0) <= Number(p.min_stock ?? 0))
+        .sort((a, b) => Number(a.stock ?? 0) - Number(b.stock ?? 0))
+        .slice(0, 6),
+    [products]
+  );
+
+  const StatCard = ({ title, value, subtext, icon, tone }) => (
+    <div className="card flex items-center gap-4">
+      <div className={`p-3.5 rounded-xl text-white text-xl ${tone}`}>{icon}</div>
       <div>
-        <p className="text-gray-500 text-sm font-medium">{title}</p>
-        <h3 className="text-2xl font-bold text-gray-800">{value}</h3>
-        {subtext && <p className="text-xs text-gray-400 mt-1">{subtext}</p>}
+        <p className="text-slate-500 text-sm font-medium">{title}</p>
+        <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
+        {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>}
       </div>
     </div>
   );
 
   return (
-    <DashboardLayout activeMenu="/admin/dashboard">
-      <div className="my-5 max-w-6xl mx-auto space-y-8">
-        
-        <div>
-          <h2 className="text-2xl font-bold text-gray-800">¡Hola, bienvenido! 👋</h2>
-          <p className="text-gray-500 mt-1 capitalize">
-            {moment().format("dddd D [de] MMMM, YYYY")}
-          </p>
+    <DashboardLayout activeMenu="Dashboard">
+      <div className="space-y-7">
+        <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
+          <div>
+            <h2 className="page-title">Inventario</h2>
+            <p className="page-subtitle capitalize">
+              {moment().format("dddd D [de] MMMM, YYYY")}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Link to="/admin/products" className="btn-primary">
+              Ver productos
+            </Link>
+            <Link to="/admin/stock-moves" className="btn-accent">
+              Movimiento stock
+            </Link>
+          </div>
         </div>
 
         {loading ? (
-          <p>Cargando estadísticas...</p>
-        ) : stats ? (
+          <p className="text-slate-500">Cargando inventario...</p>
+        ) : (
           <>
-            {/* TARJETAS */}
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-              <StatCard 
-                title="Ventas de Hoy"
-                value={`S/ ${Number(stats.today?.total_money || 0).toFixed(2)}`}
-                subtext={`${stats.today?.total_count || 0} ventas realizadas`}
-                icon={<span className="font-bold text-xl">S/.</span>}
-                color="bg-blue-600"
-              />
-              <StatCard 
-                title="Ventas del Mes"
-                value={`S/ ${Number(stats.month?.total_money || 0).toFixed(2)}`}
-                subtext="Acumulado este mes"
-                icon={<LuShoppingCart />}
-                color="bg-purple-600"
-              />
-               <StatCard 
-                title="Productos Activos"
-                value={stats.products || 0}
+            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+              <StatCard
+                title="Productos activos"
+                value={metrics.total}
                 subtext="En catálogo"
                 icon={<LuPackage />}
-                color="bg-green-600"
+                tone="bg-teal-700"
+              />
+              <StatCard
+                title="Stock OK"
+                value={metrics.ok}
+                subtext="Por encima del mínimo"
+                icon={<LuBoxes />}
+                tone="bg-[var(--color-sidebar)]"
+              />
+              <StatCard
+                title="Stock bajo"
+                value={metrics.low}
+                subtext="En o bajo el mínimo"
+                icon={<LuTriangleAlert />}
+                tone="bg-amber-600"
+              />
+              <StatCard
+                title="Sin stock"
+                value={metrics.out}
+                subtext="Reponer cuanto antes"
+                icon={<LuArrowLeftRight />}
+                tone="bg-red-600"
               />
             </div>
 
-            {/* SECCIÓN INFERIOR: GRÁFICO + TOP PRODUCTOS */}
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                
-                {/* COLUMNA IZQUIERDA: GRÁFICO (Ocupa 2 espacios) */}
-                <div className="lg:col-span-2 bg-white p-6 rounded-xl shadow-sm border border-gray-100 overflow-x-auto">
-                    <div className="flex items-center gap-2 mb-6">
-                        <div className="p-2 bg-orange-100 text-orange-600 rounded-lg"><LuTrendingUp size={20}/></div>
-                        <h3 className="text-lg font-bold text-gray-800">Tendencia de Ventas</h3>
-                    </div>
-                    <div className="flex justify-center">
-                        {stats.chart && stats.chart.length > 0 ? (
-                            <BarChart width={600} height={300} data={stats.chart}>
-                                <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#eee" />
-                                <XAxis dataKey="date" tick={{fontSize: 12}} />
-                                <YAxis tick={{fontSize: 12}} />
-                                <Tooltip cursor={{fill: '#F9FAFB'}} />
-                                <Bar dataKey="total" fill="#4F46E5" radius={[4, 4, 0, 0]} barSize={40} name="Ventas" />
-                            </BarChart>
-                        ) : (
-                            <div className="h-32 flex items-center justify-center text-gray-400"><p>Sin datos</p></div>
-                        )}
-                    </div>
-                </div>
+            <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+              <div className="card">
+                <h3 className="font-bold text-slate-800 mb-4">Alertas de stock</h3>
+                {lowList.length === 0 ? (
+                  <p className="text-sm text-slate-400">Todo el stock está en buen nivel.</p>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>SKU</th>
+                        <th>Producto</th>
+                        <th>Stock</th>
+                        <th>Min</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {lowList.map((p) => (
+                        <tr key={p.id}>
+                          <td>{p.sku}</td>
+                          <td>{p.name}</td>
+                          <td>
+                            <span
+                              className={`badge ${
+                                Number(p.stock ?? 0) <= 0 ? "badge-out" : "badge-low"
+                              }`}
+                            >
+                              {p.stock ?? 0}
+                            </span>
+                          </td>
+                          <td>{p.min_stock}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
 
-                {/* COLUMNA DERECHA: TOP PRODUCTOS (Ocupa 1 espacio) */}
-                <div className="bg-white p-6 rounded-xl shadow-sm border border-gray-100">
-                    <div className="flex items-center gap-2 mb-6">
-                        <div className="p-2 bg-yellow-100 text-yellow-600 rounded-lg"><LuTrophy size={20}/></div>
-                        <h3 className="text-lg font-bold text-gray-800">Más Vendidos</h3>
-                    </div>
-                    <div className="space-y-4">
-                        {stats.topProducts && stats.topProducts.length > 0 ? (
-                            stats.topProducts.map((prod, index) => (
-                                <div key={index} className="flex items-center justify-between p-3 hover:bg-gray-50 rounded-lg border border-transparent hover:border-gray-100 transition-colors">
-                                    <div className="flex items-center gap-3">
-                                        <span className={`font-bold w-6 h-6 flex items-center justify-center rounded-full text-xs ${index === 0 ? 'bg-yellow-100 text-yellow-700' : 'bg-gray-100 text-gray-600'}`}>
-                                            {index + 1}
-                                        </span>
-                                        <p className="text-sm font-medium text-gray-700 truncate max-w-[150px]" title={prod.name}>
-                                            {prod.name}
-                                        </p>
-                                    </div>
-                                    <span className="text-xs font-semibold bg-blue-50 text-blue-600 px-2 py-1 rounded-full">
-                                        {prod.quantity} u.
-                                    </span>
-                                </div>
-                            ))
-                        ) : (
-                            <p className="text-center text-gray-400 text-sm py-4">No hay datos aún</p>
-                        )}
-                    </div>
+              <div className="card">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="font-bold text-slate-800">Últimos movimientos</h3>
+                  <Link to="/admin/stock-moves" className="text-sm text-teal-700 font-semibold">
+                    Ver todos
+                  </Link>
                 </div>
-
+                {moves.length === 0 ? (
+                  <p className="text-sm text-slate-400">Aún no hay movimientos registrados.</p>
+                ) : (
+                  <table className="data-table">
+                    <thead>
+                      <tr>
+                        <th>Tipo</th>
+                        <th>SKU</th>
+                        <th>Cant.</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {moves.map((m) => (
+                        <tr key={m.id}>
+                          <td>
+                            <span
+                              className={`badge ${
+                                m.move_type === "IN"
+                                  ? "badge-ok"
+                                  : m.move_type === "OUT"
+                                    ? "badge-out"
+                                    : "badge-low"
+                              }`}
+                            >
+                              {m.move_type}
+                            </span>
+                          </td>
+                          <td>{m.sku || "-"}</td>
+                          <td>{m.quantity}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                )}
+              </div>
             </div>
           </>
-        ) : (
-          <p className="text-red-500">No se pudieron cargar los datos.</p>
         )}
       </div>
     </DashboardLayout>
-  )
+  );
 }

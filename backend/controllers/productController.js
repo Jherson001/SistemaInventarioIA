@@ -17,6 +17,14 @@ const ProductController = {
     } catch (err) { next(err); }
   },
 
+  async getByBarcode(req, res, next) {
+    try {
+      const item = await Product.findByBarcode(req.params.code);
+      if (!item) return res.status(404).json({ error: 'Producto no encontrado para ese código' });
+      res.json(item);
+    } catch (err) { next(err); }
+  },
+
   async create(req, res, next) {
     try {
       const required = ['sku', 'name', 'price'];
@@ -43,7 +51,9 @@ const ProductController = {
       // permitimos actualizar campos clave; si no vienen, usa los existentes
       const payload = {
         sku: req.body.sku ?? item.sku,
-        barcode: req.body.barcode ?? item.barcode,
+        barcode: Object.prototype.hasOwnProperty.call(req.body, 'barcode')
+          ? req.body.barcode
+          : item.barcode,
         name: req.body.name ?? item.name,
         description: req.body.description ?? item.description,
         category_id: req.body.category_id ?? item.category_id,
