@@ -6,7 +6,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
   const { user } = useAuth();
 
   return (
-    <div className="min-h-screen">
+    <div className="min-h-screen min-h-[100dvh]">
       <NavBar activeMenu={activeMenu} />
 
       {user && (
@@ -14,7 +14,7 @@ const DashboardLayout = ({ children, activeMenu }) => {
           <div className="hidden lg:block">
             <SideMenu activeMenu={activeMenu} />
           </div>
-          <main className="grow px-4 md:px-6 py-5 max-w-[1400px] w-full mx-auto">
+          <main className="grow px-3 sm:px-4 md:px-6 py-3 sm:py-5 max-w-[1400px] w-full mx-auto min-w-0">
             {children}
           </main>
         </div>

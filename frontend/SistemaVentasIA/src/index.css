@@ -22,6 +22,7 @@
 @layer base {
   html {
     font-family: var(--font-display);
+    -webkit-text-size-adjust: 100%;
   }
 
   body {
@@ -32,7 +33,70 @@
     color: var(--color-ink);
     overflow-x: hidden;
     min-height: 100vh;
+    min-height: 100dvh;
   }
+}
+
+/* Compacto en celular: menos aire, tipografía más densa */
+@media (max-width: 767px) {
+  .page-title {
+    font-size: 1.2rem;
+  }
+
+  .page-subtitle {
+    font-size: 0.8rem;
+  }
+
+  .card {
+    padding: 0.85rem;
+    border-radius: 0.75rem;
+  }
+
+  .btn,
+  .btn-primary,
+  .btn-accent,
+  .btn-delete {
+    padding: 0.45rem 0.7rem;
+    font-size: 0.8rem;
+  }
+
+  .data-table thead th,
+  .data-table tbody td {
+    padding: 0.55rem 0.6rem;
+  }
+
+  .input {
+    padding: 0.5rem 0.65rem;
+    font-size: 16px; /* evita zoom automático en iOS */
+  }
+}
+
+.table-scroll {
+  width: 100%;
+  overflow-x: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
+.mobile-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.65rem;
+}
+
+.mobile-item {
+  background: rgba(255, 255, 255, 0.95);
+  border: 1px solid var(--color-line);
+  border-radius: 0.75rem;
+  padding: 0.85rem;
+}
+
+.mobile-item-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  margin-top: 0.65rem;
+  padding-top: 0.65rem;
+  border-top: 1px solid #eef2f7;
 }
 
 .brand-font {

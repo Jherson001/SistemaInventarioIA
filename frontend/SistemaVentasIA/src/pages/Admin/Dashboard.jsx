@@ -63,48 +63,48 @@ export default function Dashboard() {
   );
 
   const StatCard = ({ title, value, subtext, icon, tone }) => (
-    <div className="card flex items-center gap-4">
-      <div className={`p-3.5 rounded-xl text-white text-xl ${tone}`}>{icon}</div>
-      <div>
-        <p className="text-slate-500 text-sm font-medium">{title}</p>
-        <h3 className="text-2xl font-bold text-slate-900">{value}</h3>
-        {subtext && <p className="text-xs text-slate-400 mt-1">{subtext}</p>}
+    <div className="card flex items-center gap-2.5 sm:gap-4 !p-3 sm:!p-[1.25rem]">
+      <div className={`p-2.5 sm:p-3.5 rounded-xl text-white text-base sm:text-xl shrink-0 ${tone}`}>
+        {icon}
+      </div>
+      <div className="min-w-0">
+        <p className="text-slate-500 text-xs sm:text-sm font-medium truncate">{title}</p>
+        <h3 className="text-xl sm:text-2xl font-bold text-slate-900">{value}</h3>
+        {subtext && <p className="text-[11px] sm:text-xs text-slate-400 mt-0.5 truncate">{subtext}</p>}
       </div>
     </div>
   );
 
   return (
     <DashboardLayout activeMenu="Inicio">
-      <div className="space-y-6">
+      <div className="space-y-4 sm:space-y-6">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <h2 className="page-title">Panel de inventario</h2>
             <p className="page-subtitle capitalize">
-              {moment().format("dddd D [de] MMMM [de] YYYY")}
+              {moment().format("dddd D [de] MMMM")}
             </p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Link to="/admin/products" className="btn-primary">
-              Ver productos
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+            <Link to="/admin/products" className="btn-primary w-full sm:w-auto">
+              Productos
             </Link>
-            <Link to="/admin/stock-moves" className="btn-accent">
-              Registrar movimiento
+            <Link to="/admin/stock-moves" className="btn-accent w-full sm:w-auto">
+              Movimiento
             </Link>
           </div>
         </div>
 
-        <div className="card !py-3 text-sm text-slate-600">
-          <strong className="text-slate-800">Cómo leer las alertas:</strong> el{" "}
-          <em>mínimo</em> lo defines tú en cada producto. Si la cantidad actual es
-          menor o igual a ese mínimo, aparece como <strong>bajo</strong>. Si llega a
-          0, aparece como <strong>sin existencias</strong>.
+        <div className="card !py-2.5 text-xs sm:text-sm text-slate-600">
+          <strong className="text-slate-800">Alertas:</strong> si la cantidad es ≤ al
+          mínimo → <strong>bajo</strong>; si llega a 0 → <strong>sin existencias</strong>.
         </div>
 
         {loading ? (
           <p className="text-slate-500">Cargando inventario...</p>
         ) : (
           <>
-            <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-4 gap-4">
+            <div className="grid grid-cols-2 xl:grid-cols-4 gap-2.5 sm:gap-4">
               <StatCard
                 title="Productos activos"
                 value={metrics.total}
@@ -149,37 +149,63 @@ export default function Dashboard() {
                 {lowList.length === 0 ? (
                   <p className="text-sm text-slate-400">Todo está en buen nivel.</p>
                 ) : (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Producto</th>
-                        <th>Hay</th>
-                        <th>Mínimo</th>
-                        <th>Estado</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <>
+                    <div className="mobile-list md:hidden">
                       {lowList.map((p) => {
                         const s = Number(p.stock ?? 0);
                         const sin = s <= 0;
                         return (
-                          <tr key={p.id}>
-                            <td>
-                              <div className="font-medium">{p.name}</div>
-                              <div className="text-xs text-slate-400">{p.sku}</div>
-                            </td>
-                            <td className="font-semibold">{s}</td>
-                            <td>{p.min_stock ?? 0}</td>
-                            <td>
-                              <span className={`badge ${sin ? "badge-out" : "badge-low"}`}>
-                                {sin ? "Sin existencias" : "Bajo"}
+                          <div key={p.id} className="mobile-item !p-3">
+                            <div className="flex items-start justify-between gap-2">
+                              <div className="min-w-0">
+                                <p className="font-medium text-sm truncate">{p.name}</p>
+                                <p className="text-xs text-slate-400">{p.sku}</p>
+                              </div>
+                              <span className={`badge shrink-0 ${sin ? "badge-out" : "badge-low"}`}>
+                                {sin ? "Sin stock" : "Bajo"}
                               </span>
-                            </td>
-                          </tr>
+                            </div>
+                            <p className="text-xs text-slate-500 mt-2">
+                              Hay <strong>{s}</strong> · Mín. {p.min_stock ?? 0}
+                            </p>
+                          </div>
                         );
                       })}
-                    </tbody>
-                  </table>
+                    </div>
+                    <div className="table-scroll hidden md:block">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Producto</th>
+                            <th>Hay</th>
+                            <th>Mínimo</th>
+                            <th>Estado</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {lowList.map((p) => {
+                            const s = Number(p.stock ?? 0);
+                            const sin = s <= 0;
+                            return (
+                              <tr key={p.id}>
+                                <td>
+                                  <div className="font-medium">{p.name}</div>
+                                  <div className="text-xs text-slate-400">{p.sku}</div>
+                                </td>
+                                <td className="font-semibold">{s}</td>
+                                <td>{p.min_stock ?? 0}</td>
+                                <td>
+                                  <span className={`badge ${sin ? "badge-out" : "badge-low"}`}>
+                                    {sin ? "Sin existencias" : "Bajo"}
+                                  </span>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </div>
 
@@ -193,18 +219,11 @@ export default function Dashboard() {
                 {moves.length === 0 ? (
                   <p className="text-sm text-slate-400">Aún no hay movimientos registrados.</p>
                 ) : (
-                  <table className="data-table">
-                    <thead>
-                      <tr>
-                        <th>Tipo</th>
-                        <th>Producto</th>
-                        <th className="!text-right">Cant.</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                  <>
+                    <div className="mobile-list md:hidden">
                       {moves.map((m) => (
-                        <tr key={m.id}>
-                          <td>
+                        <div key={m.id} className="mobile-item !p-3 flex items-center justify-between gap-2">
+                          <div className="min-w-0">
                             <span
                               className={`badge ${
                                 m.move_type === "IN"
@@ -216,18 +235,52 @@ export default function Dashboard() {
                             >
                               {MOVE_LABEL[m.move_type] || m.move_type}
                             </span>
-                          </td>
-                          <td>
-                            <div className="font-medium">{m.name || m.sku || "—"}</div>
-                            {m.name && m.sku ? (
-                              <div className="text-xs text-slate-400">{m.sku}</div>
-                            ) : null}
-                          </td>
-                          <td className="!text-right font-semibold">{m.quantity}</td>
-                        </tr>
+                            <p className="font-medium text-sm mt-1 truncate">
+                              {m.name || m.sku || "—"}
+                            </p>
+                          </div>
+                          <span className="font-semibold shrink-0">{m.quantity}</span>
+                        </div>
                       ))}
-                    </tbody>
-                  </table>
+                    </div>
+                    <div className="table-scroll hidden md:block">
+                      <table className="data-table">
+                        <thead>
+                          <tr>
+                            <th>Tipo</th>
+                            <th>Producto</th>
+                            <th className="!text-right">Cant.</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {moves.map((m) => (
+                            <tr key={m.id}>
+                              <td>
+                                <span
+                                  className={`badge ${
+                                    m.move_type === "IN"
+                                      ? "badge-ok"
+                                      : m.move_type === "OUT"
+                                        ? "badge-out"
+                                        : "badge-low"
+                                  }`}
+                                >
+                                  {MOVE_LABEL[m.move_type] || m.move_type}
+                                </span>
+                              </td>
+                              <td>
+                                <div className="font-medium">{m.name || m.sku || "—"}</div>
+                                {m.name && m.sku ? (
+                                  <div className="text-xs text-slate-400">{m.sku}</div>
+                                ) : null}
+                              </td>
+                              <td className="!text-right font-semibold">{m.quantity}</td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </>
                 )}
               </div>
             </div>

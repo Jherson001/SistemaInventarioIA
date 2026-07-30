@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { SIDE_MENU_DATA } from "../../utils/data";
 import useAuth from "../../hooks/useAuth";
 
-const SideMenu = ({ activeMenu }) => {
+const SideMenu = ({ activeMenu, onNavigate }) => {
   const { user, logout } = useAuth();
   const [sideMenuData, setSideMenuData] = useState([]);
   const navigate = useNavigate();
@@ -12,9 +12,11 @@ const SideMenu = ({ activeMenu }) => {
     if (route === "logout") {
       localStorage.clear();
       logout();
+      onNavigate?.();
       navigate("/login");
       return;
     }
+    onNavigate?.();
     navigate(route);
   };
 
@@ -26,11 +28,11 @@ const SideMenu = ({ activeMenu }) => {
   const isAdmin = (user?.roles || []).includes("admin") || user?.role === "admin";
 
   return (
-    <aside className="w-64 min-h-[calc(100vh-64px)] sticky top-16 z-20 flex flex-col bg-[var(--color-sidebar)] text-white">
-      <div className="px-5 pt-6 pb-5 border-b border-white/10">
-        <p className="brand-font text-2xl tracking-tight">Dashboard</p>
-        <p className="text-xs text-slate-300 mt-1">Control de inventario</p>
-        <div className="mt-4 rounded-xl bg-white/5 border border-white/10 px-3 py-3">
+    <aside className="w-full lg:w-64 h-full lg:min-h-[calc(100vh-64px)] lg:sticky lg:top-16 z-20 flex flex-col bg-[var(--color-sidebar)] text-white">
+      <div className="px-4 pt-5 pb-4 border-b border-white/10">
+        <p className="brand-font text-xl tracking-tight">Inventario</p>
+        <p className="text-xs text-slate-300 mt-0.5">Control de stock</p>
+        <div className="mt-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
           <p className="text-sm font-semibold truncate">{displayName}</p>
           <p className="text-[11px] text-slate-400 truncate">{user?.email || ""}</p>
           {isAdmin && (
@@ -41,7 +43,7 @@ const SideMenu = ({ activeMenu }) => {
         </div>
       </div>
 
-      <nav className="flex-1 py-4 px-3 space-y-1 overflow-y-auto">
+      <nav className="flex-1 py-3 px-2.5 space-y-1 overflow-y-auto">
         {sideMenuData.map((item) => {
           const active = activeMenu === item.label;
           const isLogout = item.path === "logout";

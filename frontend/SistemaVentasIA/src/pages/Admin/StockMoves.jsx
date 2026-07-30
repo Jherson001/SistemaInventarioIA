@@ -204,7 +204,7 @@ export default function StockMoves() {
             </p>
           </div>
           {canCreate && (
-            <div className="flex flex-wrap gap-2">
+            <div className="grid grid-cols-3 sm:flex sm:flex-wrap gap-2">
               <button type="button" className="btn-primary" onClick={() => openNew("IN")}>
                 + Entrada
               </button>
@@ -219,15 +219,15 @@ export default function StockMoves() {
         </div>
 
         {/* Leyenda simple */}
-        <div className="card !py-3 flex flex-wrap gap-4 text-sm text-slate-600">
+        <div className="card !py-2.5 flex flex-wrap gap-2 sm:gap-4 text-xs sm:text-sm text-slate-600">
           <span>
-            <span className="badge badge-ok mr-1">Entrada</span> compra / ingreso
+            <span className="badge badge-ok mr-1">Entrada</span> ingreso
           </span>
           <span>
-            <span className="badge badge-out mr-1">Salida</span> venta / merma / uso
+            <span className="badge badge-out mr-1">Salida</span> venta / merma
           </span>
           <span>
-            <span className="badge badge-low mr-1">Ajuste</span> corrección de conteo
+            <span className="badge badge-low mr-1">Ajuste</span> corrección
           </span>
         </div>
 
@@ -353,51 +353,80 @@ export default function StockMoves() {
         {loading ? (
           <p className="text-slate-500">Cargando movimientos...</p>
         ) : (
-          <div className="card !p-0 overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>Fecha</th>
-                  {!filterProd && <th>Producto</th>}
-                  <th>Tipo</th>
-                  <th className="!text-right">Cantidad</th>
-                  <th>Referencia</th>
-                  <th>Nota</th>
-                </tr>
-              </thead>
-              <tbody>
-                {applyFilters.map((m) => (
-                  <tr key={m.id}>
-                    <td className="whitespace-nowrap text-slate-600">{shortDate(m.moved_at)}</td>
-                    {!filterProd && (
-                      <td>
-                        <div className="font-medium">{m.name}</div>
-                        <div className="text-xs text-slate-400">{m.sku}</div>
-                      </td>
-                    )}
-                    <td>{typeBadge(m.move_type)}</td>
-                    <td className={`!text-right ${qtyClass(m)}`}>{formatQty(m)}</td>
-                    <td className="text-slate-600">{m.reference || "—"}</td>
-                    <td className="text-slate-500">{m.note || "—"}</td>
-                  </tr>
-                ))}
-                {applyFilters.length === 0 && (
+          <>
+            <div className="mobile-list md:hidden">
+              {applyFilters.map((m) => (
+                <div key={m.id} className="mobile-item">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      {typeBadge(m.move_type)}
+                      {!filterProd && (
+                        <p className="font-medium text-sm mt-1 truncate">{m.name}</p>
+                      )}
+                      <p className="text-xs text-slate-500 mt-0.5">{shortDate(m.moved_at)}</p>
+                    </div>
+                    <span className={`text-base shrink-0 ${qtyClass(m)}`}>{formatQty(m)}</span>
+                  </div>
+                  {(m.reference || m.note) && (
+                    <p className="text-xs text-slate-500 mt-2 truncate">
+                      {[m.reference, m.note].filter(Boolean).join(" · ")}
+                    </p>
+                  )}
+                </div>
+              ))}
+              {applyFilters.length === 0 && (
+                <p className="text-center text-slate-500 py-8 text-sm">
+                  No hay movimientos con estos filtros.
+                </p>
+              )}
+            </div>
+
+            <div className="card !p-0 table-scroll hidden md:block">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <td
-                      colSpan={filterProd ? 5 : 6}
-                      className="!text-center text-slate-500 py-10"
-                    >
-                      No hay movimientos con estos filtros.
-                      <div className="mt-2 text-sm">
-                        Usa <strong>Entrada</strong> o <strong>Salida</strong> para registrar el
-                        primero.
-                      </div>
-                    </td>
+                    <th>Fecha</th>
+                    {!filterProd && <th>Producto</th>}
+                    <th>Tipo</th>
+                    <th className="!text-right">Cantidad</th>
+                    <th>Referencia</th>
+                    <th>Nota</th>
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {applyFilters.map((m) => (
+                    <tr key={m.id}>
+                      <td className="whitespace-nowrap text-slate-600">{shortDate(m.moved_at)}</td>
+                      {!filterProd && (
+                        <td>
+                          <div className="font-medium">{m.name}</div>
+                          <div className="text-xs text-slate-400">{m.sku}</div>
+                        </td>
+                      )}
+                      <td>{typeBadge(m.move_type)}</td>
+                      <td className={`!text-right ${qtyClass(m)}`}>{formatQty(m)}</td>
+                      <td className="text-slate-600">{m.reference || "—"}</td>
+                      <td className="text-slate-500">{m.note || "—"}</td>
+                    </tr>
+                  ))}
+                  {applyFilters.length === 0 && (
+                    <tr>
+                      <td
+                        colSpan={filterProd ? 5 : 6}
+                        className="!text-center text-slate-500 py-10"
+                      >
+                        No hay movimientos con estos filtros.
+                        <div className="mt-2 text-sm">
+                          Usa <strong>Entrada</strong> o <strong>Salida</strong> para registrar el
+                          primero.
+                        </div>
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         <StockMoveModal

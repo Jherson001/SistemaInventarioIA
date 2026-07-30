@@ -160,28 +160,28 @@ export default function Products() {
 
   return (
     <DashboardLayout activeMenu="Productos">
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <h1 className="page-title">Productos</h1>
-            <p className="page-subtitle">Catálogo y stock. Escanea el código al crear o editar.</p>
+            <p className="page-subtitle">Catálogo y stock. Escanea al crear o editar.</p>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <button type="button" className="btn" onClick={exportProducts} disabled={!filtered.length}>
-              Exportar CSV
+          <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
+            <button type="button" className="btn w-full sm:w-auto" onClick={exportProducts} disabled={!filtered.length}>
+              CSV
             </button>
             {canEdit && (
-              <button type="button" onClick={openCreate} className="btn-primary">
-                Nuevo producto
+              <button type="button" onClick={openCreate} className="btn-primary w-full sm:w-auto">
+                Nuevo
               </button>
             )}
           </div>
         </div>
 
-        <div className="card !p-4">
+        <div className="card !p-3 sm:!p-4">
           <input
             className="input"
-            placeholder="Buscar por SKU / nombre / código de barras..."
+            placeholder="Buscar SKU, nombre o código..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
@@ -192,60 +192,99 @@ export default function Products() {
         {loading ? (
           <p className="text-slate-500">Cargando...</p>
         ) : (
-          <div className="card !p-0 overflow-x-auto">
-            <table className="data-table">
-              <thead>
-                <tr>
-                  <th>SKU</th>
-                  <th>Nombre</th>
-                  <th>Barcode</th>
-                  <th className="!text-right">Costo</th>
-                  <th className="!text-right">Precio</th>
-                  <th>Hay</th>
-                  <th className="!text-right">Mín.</th>
-                  {canEdit && <th className="!text-right">Acciones</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r) => (
-                  <tr key={r.id}>
-                    <td className="font-medium">{r.sku}</td>
-                    <td>{r.name}</td>
-                    <td className="text-slate-500">{r.barcode || "—"}</td>
-                    <td className="!text-right">S/ {Number(r.cost).toFixed(2)}</td>
-                    <td className="!text-right">S/ {Number(r.price).toFixed(2)}</td>
-                    <td>{stockBadge(r.stock, r.min_stock)}</td>
-                    <td className="!text-right">{r.min_stock}</td>
-                    {canEdit && (
-                      <td className="!text-right">
-                        <div className="inline-flex gap-2">
-                          <button type="button" className="btn-primary" onClick={() => openEdit(r)}>
-                            Editar
-                          </button>
-                          <button type="button" className="btn-delete" onClick={() => askDelete(r)}>
-                            Eliminar
-                          </button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-                {filtered.length === 0 && (
+          <>
+            {/* Vista móvil: tarjetas compactas */}
+            <div className="mobile-list md:hidden">
+              {filtered.map((r) => (
+                <div key={r.id} className="mobile-item">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm leading-snug">{r.name}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {r.sku}
+                        {r.barcode ? ` · ${r.barcode}` : ""}
+                      </p>
+                    </div>
+                    {stockBadge(r.stock, r.min_stock)}
+                  </div>
+                  <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
+                    <span>Costo S/ {Number(r.cost).toFixed(2)}</span>
+                    <span>Precio S/ {Number(r.price).toFixed(2)}</span>
+                    <span>Mín. {r.min_stock}</span>
+                  </div>
+                  {canEdit && (
+                    <div className="mobile-item-actions">
+                      <button type="button" className="btn-primary flex-1" onClick={() => openEdit(r)}>
+                        Editar
+                      </button>
+                      <button type="button" className="btn-delete flex-1" onClick={() => askDelete(r)}>
+                        Eliminar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {filtered.length === 0 && (
+                <p className="text-center text-slate-500 py-8 text-sm">No hay productos</p>
+              )}
+            </div>
+
+            {/* Vista desktop: tabla */}
+            <div className="card !p-0 table-scroll hidden md:block">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <td colSpan={canEdit ? 8 : 7} className="!text-center text-slate-500 py-8">
-                      No hay productos
-                    </td>
+                    <th>SKU</th>
+                    <th>Nombre</th>
+                    <th>Barcode</th>
+                    <th className="!text-right">Costo</th>
+                    <th className="!text-right">Precio</th>
+                    <th>Hay</th>
+                    <th className="!text-right">Mín.</th>
+                    {canEdit && <th className="!text-right">Acciones</th>}
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {filtered.map((r) => (
+                    <tr key={r.id}>
+                      <td className="font-medium">{r.sku}</td>
+                      <td>{r.name}</td>
+                      <td className="text-slate-500">{r.barcode || "—"}</td>
+                      <td className="!text-right">S/ {Number(r.cost).toFixed(2)}</td>
+                      <td className="!text-right">S/ {Number(r.price).toFixed(2)}</td>
+                      <td>{stockBadge(r.stock, r.min_stock)}</td>
+                      <td className="!text-right">{r.min_stock}</td>
+                      {canEdit && (
+                        <td className="!text-right">
+                          <div className="inline-flex gap-2">
+                            <button type="button" className="btn-primary" onClick={() => openEdit(r)}>
+                              Editar
+                            </button>
+                            <button type="button" className="btn-delete" onClick={() => askDelete(r)}>
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                  {filtered.length === 0 && (
+                    <tr>
+                      <td colSpan={canEdit ? 8 : 7} className="!text-center text-slate-500 py-8">
+                        No hay productos
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
         {modalOpen && (
-          <div className="fixed inset-0 bg-black/40 grid place-items-center z-50 p-4">
-            <div className="card max-w-xl w-full !shadow-2xl">
-              <div className="flex items-center justify-between mb-3">
+          <div className="fixed inset-0 bg-black/40 grid place-items-end sm:place-items-center z-50 p-0 sm:p-4">
+            <div className="card max-w-xl w-full !shadow-2xl !rounded-b-none sm:!rounded-xl max-h-[92dvh] overflow-y-auto">
+              <div className="flex items-center justify-between mb-3 sticky top-0 bg-white/95 pb-2">
                 <h2 className="font-semibold text-lg">
                   {editing ? "Editar producto" : "Nuevo producto"}
                 </h2>

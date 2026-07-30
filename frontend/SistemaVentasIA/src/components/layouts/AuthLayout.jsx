@@ -3,12 +3,12 @@ import UI_IMG from "../../assets/images/auth-img.png";
 function AuthLayout({ children }) {
   return (
     <div className="flex min-h-screen">
-      <div className="w-screen min-h-screen md:w-[55vw] px-8 md:px-12 pt-8 pb-12 flex flex-col">
+      <div className="w-screen min-h-screen md:w-[55vw] px-4 sm:px-8 md:px-12 pt-6 sm:pt-8 pb-8 sm:pb-12 flex flex-col">
         <div>
-          <h2 className="brand-font text-3xl text-[var(--color-sidebar)]">Minimarket Zuria</h2>
+          <h2 className="brand-font text-2xl sm:text-3xl text-[var(--color-sidebar)]">Minimarket Zuria</h2>
           <p className="text-sm text-slate-500 mt-1">Sistema de inventario</p>
         </div>
-        <div className="flex-1 flex items-center">{children}</div>
+        <div className="flex-1 flex items-center justify-center md:justify-start">{children}</div>
       </div>
 
       <div

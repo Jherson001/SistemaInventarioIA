@@ -110,15 +110,20 @@ export default function Categories() {
 
   return (
     <DashboardLayout activeMenu="Categorías">
-      <div className="max-w-5xl mx-auto p-4">
-        <div className="flex items-center justify-between">
-          <h1 className="text-xl font-semibold">Categorías</h1>
+      <div className="space-y-3 sm:space-y-4">
+        <div className="flex items-center justify-between gap-3">
+          <div>
+            <h1 className="page-title">Categorías</h1>
+            <p className="page-subtitle">Agrupa tus productos</p>
+          </div>
           {canEdit && (
-            <button onClick={openCreate} className="btn-primary">Nuevo</button>
+            <button type="button" onClick={openCreate} className="btn-primary shrink-0">
+              Nuevo
+            </button>
           )}
         </div>
 
-        <div className="mb-3">
+        <div className="card !p-3">
           <input
             className="input"
             placeholder="Buscar por nombre..."
@@ -127,60 +132,97 @@ export default function Categories() {
           />
         </div>
 
-        {err && <p className="text-red-600 text-sm mb-3">{err}</p>}
+        {err && <p className="text-red-600 text-sm">{err}</p>}
 
         {loading ? (
-          <p>Cargando...</p>
+          <p className="text-slate-500">Cargando...</p>
         ) : (
-          <div className="overflow-x-auto bg-white rounded-xl shadow">
-            <table className="min-w-full text-sm">
-              <thead className="bg-gray-100">
-                <tr>
-                  <th className="text-left px-3 py-2">Nombre</th>
-                  <th className="text-left px-3 py-2">Descripción</th>
-                  <th className="text-left px-3 py-2">Activo</th>
-                  <th className="text-left px-3 py-2">Actualizado</th>
-                  {canEdit && <th className="text-right px-3 py-2">Acciones</th>}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map((r) => (
-                  <tr key={r.id} className="border-t">
-                    <td className="px-3 py-2">{r.name}</td>
-                    <td className="px-3 py-2">{r.description || "-"}</td>
-                    <td className="px-3 py-2">{Number(r.is_active) ? "Sí" : "No"}</td>
-                    <td className="px-3 py-2">
-                      {r.updated_at ? new Date(r.updated_at).toLocaleString() : "-"}
-                    </td>
-                    {canEdit && (
-                      <td className="px-3 py-2 text-right">
-                        <div className="inline-flex gap-2">
-                          <button className="btn-primary" onClick={() => openEdit(r)}>Editar</button>
-                          <button className="btn-delete" onClick={() => askDelete(r)}>Eliminar</button>
-                        </div>
-                      </td>
-                    )}
-                  </tr>
-                ))}
-                {rows.length === 0 && (
+          <>
+            <div className="mobile-list md:hidden">
+              {rows.map((r) => (
+                <div key={r.id} className="mobile-item">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <p className="font-semibold text-sm">{r.name}</p>
+                      <p className="text-xs text-slate-500 mt-0.5">
+                        {r.description || "Sin descripción"}
+                      </p>
+                    </div>
+                    <span className={`badge shrink-0 ${Number(r.is_active) ? "badge-ok" : "badge-out"}`}>
+                      {Number(r.is_active) ? "Activo" : "Inactivo"}
+                    </span>
+                  </div>
+                  {canEdit && (
+                    <div className="mobile-item-actions">
+                      <button type="button" className="btn-primary flex-1" onClick={() => openEdit(r)}>
+                        Editar
+                      </button>
+                      <button type="button" className="btn-delete flex-1" onClick={() => askDelete(r)}>
+                        Eliminar
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+              {rows.length === 0 && (
+                <p className="text-center text-slate-500 py-8 text-sm">No hay categorías</p>
+              )}
+            </div>
+
+            <div className="card !p-0 table-scroll hidden md:block">
+              <table className="data-table">
+                <thead>
                   <tr>
-                    <td colSpan={canEdit ? 5 : 4} className="px-3 py-4 text-center text-gray-500">
-                      No hay categorías
-                    </td>
+                    <th>Nombre</th>
+                    <th>Descripción</th>
+                    <th>Activo</th>
+                    <th>Actualizado</th>
+                    {canEdit && <th className="!text-right">Acciones</th>}
                   </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+                </thead>
+                <tbody>
+                  {rows.map((r) => (
+                    <tr key={r.id}>
+                      <td className="font-medium">{r.name}</td>
+                      <td>{r.description || "—"}</td>
+                      <td>{Number(r.is_active) ? "Sí" : "No"}</td>
+                      <td className="text-slate-500 text-xs">
+                        {r.updated_at ? new Date(r.updated_at).toLocaleString() : "—"}
+                      </td>
+                      {canEdit && (
+                        <td className="!text-right">
+                          <div className="inline-flex gap-2">
+                            <button type="button" className="btn-primary" onClick={() => openEdit(r)}>
+                              Editar
+                            </button>
+                            <button type="button" className="btn-delete" onClick={() => askDelete(r)}>
+                              Eliminar
+                            </button>
+                          </div>
+                        </td>
+                      )}
+                    </tr>
+                  ))}
+                  {rows.length === 0 && (
+                    <tr>
+                      <td colSpan={canEdit ? 5 : 4} className="!text-center text-slate-500 py-8">
+                        No hay categorías
+                      </td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </>
         )}
 
-        {/* Paginación */}
-        <div className="flex items-center justify-between mt-3 text-sm">
-          <span className="text-gray-600">
-            Mostrando {from}-{to} de {total}
+        <div className="flex items-center justify-between gap-2 text-xs sm:text-sm">
+          <span className="text-slate-600">
+            {from}-{to} de {total}
           </span>
           <div className="flex gap-2">
             <button
+              type="button"
               className="btn"
               onClick={() => setPage((p) => Math.max(1, p - 1))}
               disabled={page === 1}
@@ -188,6 +230,7 @@ export default function Categories() {
               Anterior
             </button>
             <button
+              type="button"
               className="btn"
               onClick={() => setPage((p) => (p * PAGE_SIZE >= total ? p : p + 1))}
               disabled={page * PAGE_SIZE >= total}
@@ -197,13 +240,16 @@ export default function Categories() {
           </div>
         </div>
 
-        {/* Modal CRUD */}
         {modalOpen && (
-          <div className="fixed inset-0 bg-black/30 grid place-items-center z-50">
-            <div className="bg-white rounded-xl shadow max-w-xl w-full p-5">
+          <div className="fixed inset-0 bg-black/40 grid place-items-end sm:place-items-center z-50 p-0 sm:p-4">
+            <div className="card max-w-xl w-full !shadow-2xl !rounded-b-none sm:!rounded-xl">
               <div className="flex items-center justify-between mb-3">
-                <h2 className="font-semibold">{editing ? "Editar categoría" : "Nueva categoría"}</h2>
-                <button onClick={closeModal} className="text-sm">✕</button>
+                <h2 className="font-semibold">
+                  {editing ? "Editar categoría" : "Nueva categoría"}
+                </h2>
+                <button type="button" onClick={closeModal} className="btn !px-2 !py-1">
+                  ✕
+                </button>
               </div>
               <CategoryForm
                 initialData={editing}
@@ -215,7 +261,6 @@ export default function Categories() {
           </div>
         )}
 
-        {/* Confirmar eliminación */}
         <ConfirmDialog
           open={confirmOpen}
           title="Eliminar categoría"
