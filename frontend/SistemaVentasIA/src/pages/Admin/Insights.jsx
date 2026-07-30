@@ -93,7 +93,7 @@ export default function Insights() {
               <p className="text-xs text-slate-500 mb-3 sm:mb-4">
                 Estado según cantidad actual frente al mínimo.
               </p>
-              <div className="mobile-list md:hidden">
+              <div className="mobile-list only-mobile">
                 {health.length > 0 ? (
                   health.map((x, i) => (
                     <div key={x.product_id || i} className="mobile-item !p-3">
@@ -116,7 +116,7 @@ export default function Insights() {
                   <p className="text-center text-slate-500 py-6 text-sm">No hay datos</p>
                 )}
               </div>
-              <div className="table-scroll hidden md:block">
+              <div className="table-scroll only-desktop">
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -162,7 +162,7 @@ export default function Insights() {
               <p className="text-xs text-slate-500 mb-3 sm:mb-4">
                 Cantidad sugerida para pedir según salidas y tiempo de llegada.
               </p>
-              <div className="mobile-list md:hidden">
+              <div className="mobile-list only-mobile">
                 {reorder.length > 0 ? (
                   reorder.map((x, i) => (
                     <div key={x.product_id || i} className="mobile-item !p-3">
@@ -181,7 +181,7 @@ export default function Insights() {
                   <p className="text-center text-slate-500 py-6 text-sm">Sin sugerencias</p>
                 )}
               </div>
-              <div className="table-scroll hidden md:block">
+              <div className="table-scroll only-desktop">
                 <table className="data-table">
                   <thead>
                     <tr>

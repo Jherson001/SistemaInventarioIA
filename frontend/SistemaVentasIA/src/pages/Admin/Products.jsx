@@ -194,7 +194,7 @@ export default function Products() {
         ) : (
           <>
             {/* Vista móvil: tarjetas compactas */}
-            <div className="mobile-list md:hidden">
+            <div className="mobile-list only-mobile">
               {filtered.map((r) => (
                 <div key={r.id} className="mobile-item">
                   <div className="flex items-start justify-between gap-2">
@@ -230,7 +230,7 @@ export default function Products() {
             </div>
 
             {/* Vista desktop: tabla */}
-            <div className="card !p-0 table-scroll hidden md:block">
+            <div className="card !p-0 table-scroll only-desktop">
               <table className="data-table">
                 <thead>
                   <tr>

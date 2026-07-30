@@ -138,7 +138,7 @@ export default function Categories() {
           <p className="text-slate-500">Cargando...</p>
         ) : (
           <>
-            <div className="mobile-list md:hidden">
+            <div className="mobile-list only-mobile">
               {rows.map((r) => (
                 <div key={r.id} className="mobile-item">
                   <div className="flex items-start justify-between gap-2">
@@ -169,7 +169,7 @@ export default function Categories() {
               )}
             </div>
 
-            <div className="card !p-0 table-scroll hidden md:block">
+            <div className="card !p-0 table-scroll only-desktop">
               <table className="data-table">
                 <thead>
                   <tr>

@@ -354,7 +354,7 @@ export default function StockMoves() {
           <p className="text-slate-500">Cargando movimientos...</p>
         ) : (
           <>
-            <div className="mobile-list md:hidden">
+            <div className="mobile-list only-mobile">
               {applyFilters.map((m) => (
                 <div key={m.id} className="mobile-item">
                   <div className="flex items-start justify-between gap-2">
@@ -381,7 +381,7 @@ export default function StockMoves() {
               )}
             </div>
 
-            <div className="card !p-0 table-scroll hidden md:block">
+            <div className="card !p-0 table-scroll only-desktop">
               <table className="data-table">
                 <thead>
                   <tr>

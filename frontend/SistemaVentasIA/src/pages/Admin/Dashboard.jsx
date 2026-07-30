@@ -150,7 +150,7 @@ export default function Dashboard() {
                   <p className="text-sm text-slate-400">Todo está en buen nivel.</p>
                 ) : (
                   <>
-                    <div className="mobile-list md:hidden">
+                    <div className="mobile-list only-mobile">
                       {lowList.map((p) => {
                         const s = Number(p.stock ?? 0);
                         const sin = s <= 0;
@@ -172,7 +172,7 @@ export default function Dashboard() {
                         );
                       })}
                     </div>
-                    <div className="table-scroll hidden md:block">
+                    <div className="table-scroll only-desktop">
                       <table className="data-table">
                         <thead>
                           <tr>
@@ -220,7 +220,7 @@ export default function Dashboard() {
                   <p className="text-sm text-slate-400">Aún no hay movimientos registrados.</p>
                 ) : (
                   <>
-                    <div className="mobile-list md:hidden">
+                    <div className="mobile-list only-mobile">
                       {moves.map((m) => (
                         <div key={m.id} className="mobile-item !p-3 flex items-center justify-between gap-2">
                           <div className="min-w-0">
@@ -243,7 +243,7 @@ export default function Dashboard() {
                         </div>
                       ))}
                     </div>
-                    <div className="table-scroll hidden md:block">
+                    <div className="table-scroll only-desktop">
                       <table className="data-table">
                         <thead>
                           <tr>

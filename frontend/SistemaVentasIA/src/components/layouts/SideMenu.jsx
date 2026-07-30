@@ -28,7 +28,7 @@ const SideMenu = ({ activeMenu, onNavigate }) => {
   const isAdmin = (user?.roles || []).includes("admin") || user?.role === "admin";
 
   return (
-    <aside className="w-full lg:w-64 h-full lg:min-h-[calc(100vh-64px)] lg:sticky lg:top-16 z-20 flex flex-col bg-[var(--color-sidebar)] text-white">
+    <aside className="side-menu">
       <div className="px-4 pt-5 pb-4 border-b border-white/10">
         <p className="brand-font text-xl tracking-tight">Inventario</p>
         <p className="text-xs text-slate-300 mt-0.5">Control de stock</p>
