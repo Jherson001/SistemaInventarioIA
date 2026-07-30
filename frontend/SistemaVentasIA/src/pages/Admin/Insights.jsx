@@ -90,10 +90,33 @@ export default function Insights() {
           <>
             <section className="card">
               <h2 className="font-bold text-slate-800 mb-1">Semáforo de existencias</h2>
-              <p className="text-xs text-slate-500 mb-4">
-                Estado según cantidad actual frente al mínimo y seguridad del producto.
+              <p className="text-xs text-slate-500 mb-3 sm:mb-4">
+                Estado según cantidad actual frente al mínimo.
               </p>
-              <div className="overflow-x-auto">
+              <div className="mobile-list md:hidden">
+                {health.length > 0 ? (
+                  health.map((x, i) => (
+                    <div key={x.product_id || i} className="mobile-item !p-3">
+                      <div className="flex items-start justify-between gap-2">
+                        <div className="min-w-0">
+                          <p className="font-medium text-sm truncate">{x.name}</p>
+                          <p className="text-xs text-slate-400">{x.sku}</p>
+                        </div>
+                        <StatusBadge status={x.stock_status} />
+                      </div>
+                      <p className="text-xs text-slate-500 mt-2">
+                        Hay <strong>{x.stock}</strong>
+                        {x.days_of_cover != null && Number(x.days_of_cover) !== 0
+                          ? ` · Cobertura ${x.days_of_cover} d`
+                          : ""}
+                      </p>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-slate-500 py-6 text-sm">No hay datos</p>
+                )}
+              </div>
+              <div className="table-scroll hidden md:block">
                 <table className="data-table">
                   <thead>
                     <tr>
@@ -136,11 +159,29 @@ export default function Insights() {
 
             <section className="card">
               <h2 className="font-bold text-slate-800 mb-1">Lista de reposición sugerida</h2>
-              <p className="text-xs text-slate-500 mb-4">
-                Cantidad sugerida para pedir. “Días de llegada” es el tiempo estimado
-                del proveedor (lead time). Si no está configurado, verás 0.
+              <p className="text-xs text-slate-500 mb-3 sm:mb-4">
+                Cantidad sugerida para pedir según salidas y tiempo de llegada.
               </p>
-              <div className="overflow-x-auto">
+              <div className="mobile-list md:hidden">
+                {reorder.length > 0 ? (
+                  reorder.map((x, i) => (
+                    <div key={x.product_id || i} className="mobile-item !p-3">
+                      <p className="font-medium text-sm">{x.name}</p>
+                      <p className="text-xs text-slate-400">{x.sku}</p>
+                      <div className="mt-2 flex flex-wrap gap-x-3 gap-y-1 text-xs text-slate-600">
+                        <span>Hay {x.stock}</span>
+                        <span>{Number(x.avg_daily_sales || 0).toFixed(2)}/día</span>
+                        <span className="font-bold text-teal-800">
+                          Pedir {x.suggested_qty}
+                        </span>
+                      </div>
+                    </div>
+                  ))
+                ) : (
+                  <p className="text-center text-slate-500 py-6 text-sm">Sin sugerencias</p>
+                )}
+              </div>
+              <div className="table-scroll hidden md:block">
                 <table className="data-table">
                   <thead>
                     <tr>
