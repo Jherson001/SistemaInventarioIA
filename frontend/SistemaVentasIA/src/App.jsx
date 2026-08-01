@@ -20,6 +20,7 @@ const App = () => {
         <Route path="/admin/stock-moves" element={<StockMoves />} />
         <Route path="/admin/products" element={<Products />} />
         <Route path="/admin/categorias" element={<Categories />} />
+        <Route path="/admin/categories" element={<Navigate to="/admin/categorias" replace />} />
         <Route path="/admin/low-rotation" element={<LowRotationPage />} />
 
         {/* Ventas / POS / clientes deshabilitados: solo inventario */}

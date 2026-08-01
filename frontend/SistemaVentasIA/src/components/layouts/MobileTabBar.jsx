@@ -11,7 +11,7 @@ const TABS = [
   { to: "/admin/dashboard", label: "Inicio", icon: LuHouse },
   { to: "/admin/products", label: "Productos", icon: LuPackage },
   { to: "/admin/stock-moves", label: "Stock", icon: LuArrowLeftRight },
-  { to: "/admin/categories", label: "Categorías", icon: LuTags },
+  { to: "/admin/categorias", label: "Categorías", icon: LuTags },
 ];
 
 /**
