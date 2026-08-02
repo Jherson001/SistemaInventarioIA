@@ -49,7 +49,12 @@ export default function Products() {
 
   const canEdit = useMemo(() => {
     const roles = user?.roles || [];
-    return roles.includes("admin") || roles.includes("manager");
+    return (
+      roles.includes("admin") ||
+      roles.includes("manager") ||
+      user?.role === "admin" ||
+      user?.role === "manager"
+    );
   }, [user]);
 
   const [rows, setRows] = useState([]);
@@ -63,6 +68,7 @@ export default function Products() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toDelete, setToDelete] = useState(null);
   const [importing, setImporting] = useState(false);
+  const [importProgress, setImportProgress] = useState("");
   const [importResult, setImportResult] = useState(null);
   const [updateStockOnImport, setUpdateStockOnImport] = useState(false);
 
@@ -136,24 +142,58 @@ export default function Products() {
     e.target.value = "";
     if (!file) return;
 
+    const name = (file.name || "").toLowerCase();
+    if (name.endsWith(".xlsx") || name.endsWith(".xls")) {
+      setErr(
+        "Ese archivo es Excel (.xlsx). Usa el CSV del Escritorio: productos_zuria_importar.csv (no Productos 2.xlsx)."
+      );
+      return;
+    }
+    if (!name.endsWith(".csv") && file.type && !String(file.type).includes("csv") && !String(file.type).includes("text")) {
+      setErr("Solo se acepta archivo .csv");
+      return;
+    }
+
     setImporting(true);
     setErr("");
     setImportResult(null);
+    setImportProgress("Leyendo archivo…");
     try {
       const text = await file.text();
       const parsed = parseCsv(text);
       if (!parsed.length) {
-        throw new Error("El CSV está vacío o no se pudo leer. Usa la plantilla.");
+        throw new Error(
+          "No se pudieron leer filas. Abre productos_zuria_importar.csv (separador ;). Si abriste el Excel, guárdalo como CSV UTF-8."
+        );
       }
-      const result = await api.post("/products/import", {
-        rows: parsed,
-        update_existing: true,
-        update_stock: updateStockOnImport,
-      });
-      setImportResult(result);
+
+      const batchSize = 100;
+      const summary = { total: parsed.length, created: 0, updated: 0, skipped: 0, errors: [] };
+      const totalBatches = Math.ceil(parsed.length / batchSize);
+
+      for (let i = 0; i < parsed.length; i += batchSize) {
+        const batch = parsed.slice(i, i + batchSize);
+        const batchNo = Math.floor(i / batchSize) + 1;
+        setImportProgress(`Subiendo lote ${batchNo}/${totalBatches} (${batch.length} productos)…`);
+        const result = await api.post("/products/import", {
+          rows: batch,
+          update_existing: true,
+          update_stock: updateStockOnImport,
+        });
+        summary.created += Number(result.created || 0);
+        summary.updated += Number(result.updated || 0);
+        summary.skipped += Number(result.skipped || 0);
+        if (Array.isArray(result.errors) && result.errors.length) {
+          summary.errors.push(...result.errors);
+        }
+      }
+
+      setImportResult(summary);
+      setImportProgress("");
       await load();
     } catch (ex) {
       setErr(ex.message || "Error al importar");
+      setImportProgress("");
     } finally {
       setImporting(false);
     }
@@ -253,10 +293,24 @@ export default function Products() {
         <input
           ref={fileRef}
           type="file"
-          accept=".csv,text/csv"
+          accept=".csv,text/csv,text/plain"
           className="hidden"
           onChange={onPickImportFile}
         />
+
+        {!canEdit && (
+          <p className="text-amber-800 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
+            Tu usuario no tiene permiso de admin/manager, por eso no aparece Importar.
+            Entra con <strong>admin@local</strong> y vuelve a intentar.
+          </p>
+        )}
+
+        {canEdit && (
+          <p className="text-xs text-slate-500">
+            Usa el archivo <strong>productos_zuria_importar.csv</strong> del Escritorio (no el .xlsx del Kardex).
+            Hazlo desde la <strong>PC</strong> (Chrome), no desde el celular.
+          </p>
+        )}
 
         {canEdit && (
           <label className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 px-0.5">
@@ -267,6 +321,12 @@ export default function Products() {
             />
             Al importar, también actualizar stock (por defecto solo catálogo/precios)
           </label>
+        )}
+
+        {importProgress && (
+          <p className="text-sm text-teal-800 bg-teal-50 border border-teal-100 rounded-lg px-3 py-2">
+            {importProgress}
+          </p>
         )}
 
         {importResult && (
