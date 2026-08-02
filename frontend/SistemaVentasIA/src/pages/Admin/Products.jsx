@@ -303,15 +303,7 @@ export default function Products() {
 
         {!canEdit && (
           <p className="text-amber-800 text-sm bg-amber-50 border border-amber-200 rounded-lg px-3 py-2">
-            Tu usuario no tiene permiso de admin/manager, por eso no aparece Importar.
-            Entra con <strong>admin@local</strong> y vuelve a intentar.
-          </p>
-        )}
-
-        {canEdit && (
-          <p className="text-xs text-slate-500">
-            Usa el archivo <strong>productos_zuria_importar.csv</strong> del Escritorio (no el .xlsx del Kardex).
-            Hazlo desde la <strong>PC</strong> (Chrome), no desde el celular.
+            Tu usuario no tiene permiso de admin/manager para importar.
           </p>
         )}
 
@@ -322,7 +314,7 @@ export default function Products() {
               checked={updateStockOnImport}
               onChange={(e) => setUpdateStockOnImport(e.target.checked)}
             />
-            Al importar, también actualizar stock (por defecto solo catálogo/precios)
+            Al importar, también actualizar stock
           </label>
         )}
 
