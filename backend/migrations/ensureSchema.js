@@ -136,7 +136,7 @@ async function ensureSchema() {
     const ADMIN_EMAIL = 'admin@local';
     const ADMIN_PASS = process.env.ADMIN_BOOTSTRAP_PASSWORD || '123456';
     const ADMIN_HASH = bcrypt.hashSync(ADMIN_PASS, 10);
-    const resetAdmin = String(process.env.RESET_ADMIN_PASSWORD || 'true').toLowerCase() !== 'false';
+    const resetAdmin = String(process.env.RESET_ADMIN_PASSWORD || 'false').toLowerCase() === 'true';
     const passCol = (await columnExists('users', 'password_hash'))
       ? 'password_hash'
       : (await columnExists('users', 'password') ? 'password' : 'password_hash');

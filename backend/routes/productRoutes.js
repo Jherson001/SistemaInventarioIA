@@ -8,6 +8,7 @@ router.use(authRequired);
 
 router.get('/', ctrl.list);
 router.get('/barcode/:code', ctrl.getByBarcode);
+router.post('/import', requireRoles('admin', 'manager'), ctrl.importBulk);
 router.get('/:id', ctrl.get);
 
 router.post('/', requireRoles('admin', 'manager'), ctrl.create);

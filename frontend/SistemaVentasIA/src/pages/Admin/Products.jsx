@@ -1,10 +1,10 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import useApi from "../../hooks/useApi";
 import useAuth from "../../hooks/useAuth";
 import ProductForm from "../../components/ProductForm";
 import ConfirmDialog from "../../components/ConfirmDialog";
 import DashboardLayout from "../../components/layouts/DashboardLayout";
-import { downloadCsv } from "../../utils/csv";
+import { downloadCsv, downloadProductImportTemplate, parseCsv } from "../../utils/csv";
 
 function stockBadge(stock, min) {
   const s = Number(stock ?? 0);
@@ -33,9 +33,19 @@ function stockBadge(stock, min) {
   );
 }
 
+const FILTERS = [
+  { id: "all", label: "Todos" },
+  { id: "active", label: "Activos" },
+  { id: "inactive", label: "Inactivos" },
+  { id: "out", label: "Sin stock" },
+  { id: "low", label: "Bajo mínimo" },
+  { id: "nobarcode", label: "Sin código" },
+];
+
 export default function Products() {
   const api = useApi();
   const { user } = useAuth();
+  const fileRef = useRef(null);
 
   const canEdit = useMemo(() => {
     const roles = user?.roles || [];
@@ -46,18 +56,22 @@ export default function Products() {
   const [loading, setLoading] = useState(true);
   const [err, setErr] = useState("");
   const [search, setSearch] = useState("");
+  const [filter, setFilter] = useState("all");
   const [modalOpen, setModalOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [editing, setEditing] = useState(null);
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [toDelete, setToDelete] = useState(null);
+  const [importing, setImporting] = useState(false);
+  const [importResult, setImportResult] = useState(null);
+  const [updateStockOnImport, setUpdateStockOnImport] = useState(false);
 
   const load = async () => {
     setLoading(true);
     setErr("");
     try {
-      const data = await api.get("/products");
-      setRows(data);
+      const data = await api.get("/products?include_inactive=1");
+      setRows(Array.isArray(data) ? data : []);
     } catch (e) {
       setErr(e.message);
     } finally {
@@ -71,14 +85,25 @@ export default function Products() {
 
   const filtered = useMemo(() => {
     const q = search.trim().toLowerCase();
-    if (!q) return rows;
-    return rows.filter(
-      (r) =>
+    return rows.filter((r) => {
+      const active = Number(r.is_active) !== 0;
+      const stock = Number(r.stock ?? 0);
+      const min = Number(r.min_stock ?? 0);
+
+      if (filter === "active" && !active) return false;
+      if (filter === "inactive" && active) return false;
+      if (filter === "out" && !(active && stock <= 0)) return false;
+      if (filter === "low" && !(active && stock > 0 && stock <= min)) return false;
+      if (filter === "nobarcode" && String(r.barcode || "").trim()) return false;
+
+      if (!q) return true;
+      return (
         r.sku?.toLowerCase().includes(q) ||
         r.name?.toLowerCase().includes(q) ||
         r.barcode?.toLowerCase().includes(q)
-    );
-  }, [rows, search]);
+      );
+    });
+  }, [rows, search, filter]);
 
   const exportProducts = () => {
     downloadCsv(
@@ -104,6 +129,34 @@ export default function Products() {
         is_active: Number(r.is_active) ? "Si" : "No",
       }))
     );
+  };
+
+  const onPickImportFile = async (e) => {
+    const file = e.target.files?.[0];
+    e.target.value = "";
+    if (!file) return;
+
+    setImporting(true);
+    setErr("");
+    setImportResult(null);
+    try {
+      const text = await file.text();
+      const parsed = parseCsv(text);
+      if (!parsed.length) {
+        throw new Error("El CSV está vacío o no se pudo leer. Usa la plantilla.");
+      }
+      const result = await api.post("/products/import", {
+        rows: parsed,
+        update_existing: true,
+        update_stock: updateStockOnImport,
+      });
+      setImportResult(result);
+      await load();
+    } catch (ex) {
+      setErr(ex.message || "Error al importar");
+    } finally {
+      setImporting(false);
+    }
   };
 
   const openCreate = () => {
@@ -164,27 +217,103 @@ export default function Products() {
         <div className="flex flex-col sm:flex-row sm:items-end sm:justify-between gap-3">
           <div>
             <h1 className="page-title">Productos</h1>
-            <p className="page-subtitle">Catálogo y stock. Escanea al crear o editar.</p>
+            <p className="page-subtitle">
+              Catálogo, filtros e importación CSV para cargas masivas.
+            </p>
           </div>
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
             <button type="button" className="btn w-full sm:w-auto" onClick={exportProducts} disabled={!filtered.length}>
-              CSV
+              Exportar
             </button>
             {canEdit && (
-              <button type="button" onClick={openCreate} className="btn-primary w-full sm:w-auto">
-                Nuevo
-              </button>
+              <>
+                <button
+                  type="button"
+                  className="btn w-full sm:w-auto"
+                  onClick={downloadProductImportTemplate}
+                >
+                  Plantilla
+                </button>
+                <button
+                  type="button"
+                  className="btn w-full sm:w-auto"
+                  disabled={importing}
+                  onClick={() => fileRef.current?.click()}
+                >
+                  {importing ? "Importando…" : "Importar CSV"}
+                </button>
+                <button type="button" onClick={openCreate} className="btn-primary w-full sm:w-auto">
+                  Nuevo
+                </button>
+              </>
             )}
           </div>
         </div>
 
-        <div className="card !p-3 sm:!p-4">
+        <input
+          ref={fileRef}
+          type="file"
+          accept=".csv,text/csv"
+          className="hidden"
+          onChange={onPickImportFile}
+        />
+
+        {canEdit && (
+          <label className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 px-0.5">
+            <input
+              type="checkbox"
+              checked={updateStockOnImport}
+              onChange={(e) => setUpdateStockOnImport(e.target.checked)}
+            />
+            Al importar, también actualizar stock (por defecto solo catálogo/precios)
+          </label>
+        )}
+
+        {importResult && (
+          <div className="card !py-3 text-sm text-slate-700">
+            Importación: <strong>{importResult.created}</strong> creados,{" "}
+            <strong>{importResult.updated}</strong> actualizados,{" "}
+            <strong>{importResult.skipped}</strong> omitidos
+            {importResult.errors?.length > 0 && (
+              <details className="mt-2 text-xs text-amber-800">
+                <summary>{importResult.errors.length} avisos</summary>
+                <ul className="mt-1 list-disc pl-4 max-h-32 overflow-y-auto">
+                  {importResult.errors.slice(0, 20).map((e, i) => (
+                    <li key={i}>
+                      Línea {e.line}
+                      {e.sku ? ` (${e.sku})` : ""}: {e.error}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        )}
+
+        <div className="card !p-3 sm:!p-4 space-y-3">
           <input
             className="input"
             placeholder="Buscar SKU, nombre o código..."
             value={search}
             onChange={(e) => setSearch(e.target.value)}
           />
+          <div className="flex flex-wrap gap-1.5">
+            {FILTERS.map((f) => (
+              <button
+                key={f.id}
+                type="button"
+                className={`btn !py-1.5 !px-2.5 !text-xs ${
+                  filter === f.id ? "!bg-teal-700 !text-white !border-teal-700" : ""
+                }`}
+                onClick={() => setFilter(f.id)}
+              >
+                {f.label}
+              </button>
+            ))}
+          </div>
+          <p className="text-xs text-slate-500">
+            Mostrando {filtered.length} de {rows.length}
+          </p>
         </div>
 
         {err && <p className="text-red-600 text-sm">{err}</p>}
@@ -193,7 +322,6 @@ export default function Products() {
           <p className="text-slate-500">Cargando...</p>
         ) : (
           <>
-            {/* Vista móvil: tarjetas compactas */}
             <div className="mobile-list only-mobile">
               {filtered.map((r) => (
                 <div key={r.id} className="mobile-item">
@@ -203,6 +331,7 @@ export default function Products() {
                       <p className="text-xs text-slate-500 mt-0.5">
                         {r.sku}
                         {r.barcode ? ` · ${r.barcode}` : ""}
+                        {Number(r.is_active) === 0 ? " · Inactivo" : ""}
                       </p>
                     </div>
                     {stockBadge(r.stock, r.min_stock)}
@@ -229,7 +358,6 @@ export default function Products() {
               )}
             </div>
 
-            {/* Vista desktop: tabla */}
             <div className="card !p-0 table-scroll only-desktop">
               <table className="data-table">
                 <thead>
@@ -241,12 +369,13 @@ export default function Products() {
                     <th className="!text-right">Precio</th>
                     <th>Hay</th>
                     <th className="!text-right">Mín.</th>
+                    <th>Estado</th>
                     {canEdit && <th className="!text-right">Acciones</th>}
                   </tr>
                 </thead>
                 <tbody>
                   {filtered.map((r) => (
-                    <tr key={r.id}>
+                    <tr key={r.id} className={Number(r.is_active) === 0 ? "opacity-60" : ""}>
                       <td className="font-medium">{r.sku}</td>
                       <td>{r.name}</td>
                       <td className="text-slate-500">{r.barcode || "—"}</td>
@@ -254,6 +383,11 @@ export default function Products() {
                       <td className="!text-right">S/ {Number(r.price).toFixed(2)}</td>
                       <td>{stockBadge(r.stock, r.min_stock)}</td>
                       <td className="!text-right">{r.min_stock}</td>
+                      <td>
+                        <span className={`badge ${Number(r.is_active) ? "badge-ok" : "badge-out"}`}>
+                          {Number(r.is_active) ? "Activo" : "Inactivo"}
+                        </span>
+                      </td>
                       {canEdit && (
                         <td className="!text-right">
                           <div className="inline-flex gap-2">
@@ -270,7 +404,7 @@ export default function Products() {
                   ))}
                   {filtered.length === 0 && (
                     <tr>
-                      <td colSpan={canEdit ? 8 : 7} className="!text-center text-slate-500 py-8">
+                      <td colSpan={canEdit ? 9 : 8} className="!text-center text-slate-500 py-8">
                         No hay productos
                       </td>
                     </tr>

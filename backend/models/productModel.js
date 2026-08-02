@@ -2,19 +2,26 @@
 const { query } = require('../config/db');
 
 const ProductModel = {
-  async findAll() {
-    // Simplificado: Usamos la columna física 'stock' que ya existe en la tabla
-    const sql = `
-      SELECT * FROM products 
-      WHERE is_active = 1
-      ORDER BY created_at DESC;
-    `;
+  async findAll({ includeInactive = true } = {}) {
+    const sql = includeInactive
+      ? `SELECT * FROM products ORDER BY name ASC`
+      : `SELECT * FROM products WHERE is_active = 1 ORDER BY name ASC`;
     return await query(sql);
   },
 
   async findById(id) {
     const sql = `SELECT * FROM products WHERE id = ? LIMIT 1;`;
     const rows = await query(sql, [id]);
+    return rows[0] || null;
+  },
+
+  async findBySku(sku) {
+    const code = String(sku || '').trim();
+    if (!code) return null;
+    const rows = await query(
+      `SELECT * FROM products WHERE sku = ? LIMIT 1`,
+      [code]
+    );
     return rows[0] || null;
   },
 
