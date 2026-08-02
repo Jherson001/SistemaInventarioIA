@@ -1,4 +1,4 @@
-import { createContext, useMemo, useState } from "react";
+import { createContext, useEffect, useMemo, useState } from "react";
 import { API_BASE_URL } from "../utils/config";
 import { saveSession, clearSession, getToken, getUser } from "../utils/storage";
 
@@ -6,8 +6,42 @@ export const AuthContext = createContext(null);
 
 export default function AuthProvider({ children }) {
   const [token, setToken] = useState(getToken());
-  const [user, setUser]   = useState(getUser());
+  const [user, setUser] = useState(getUser());
   const [loading, setLoading] = useState(false);
+
+  // Refresca perfil/roles al abrir la app (evita sesión vieja sin roles)
+  useEffect(() => {
+    if (!token) return undefined;
+    let cancelled = false;
+    (async () => {
+      try {
+        const res = await fetch(`${API_BASE_URL}/auth/me`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!res.ok) {
+          if (res.status === 401) {
+            clearSession();
+            if (!cancelled) {
+              setToken(null);
+              setUser(null);
+            }
+          }
+          return;
+        }
+        const data = await res.json();
+        const nextUser = data?.user || data;
+        if (!cancelled && nextUser) {
+          setUser(nextUser);
+          saveSession(token, nextUser);
+        }
+      } catch {
+        /* ignore red de arranque */
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [token]);
 
   const login = async (email, password) => {
     setLoading(true);
@@ -34,7 +68,8 @@ export default function AuthProvider({ children }) {
           return true;
         } catch (e) {
           lastErr = e;
-          const network = e instanceof TypeError || /failed to fetch|network/i.test(String(e.message));
+          const network =
+            e instanceof TypeError || /failed to fetch|network/i.test(String(e.message));
           if (network && attempt < 3) {
             await new Promise((r) => setTimeout(r, 800 * attempt));
             continue;
@@ -59,6 +94,9 @@ export default function AuthProvider({ children }) {
     setUser(null);
   };
 
-  const value = useMemo(() => ({ token, user, login, logout, loading }), [token, user, loading]);
+  const value = useMemo(
+    () => ({ token, user, login, logout, loading }),
+    [token, user, loading]
+  );
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
 }

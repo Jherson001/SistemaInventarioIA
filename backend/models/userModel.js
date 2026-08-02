@@ -49,13 +49,13 @@ async function setLastLogin(id) {
 async function getRoles(userId) {
   try {
     const rows = await db.query(
-      `SELECT r.name
+      `SELECT DISTINCT r.name
          FROM roles r
          JOIN user_roles ur ON ur.role_id = r.id
         WHERE ur.user_id = ?`,
       [userId]
     );
-    const roles = rows.map(r => r.name);
+    const roles = [...new Set(rows.map((r) => r.name).filter(Boolean))];
     return roles.length ? roles : ['admin'];
   } catch (err) {
     console.warn('[users] getRoles fallback admin:', err.message);
