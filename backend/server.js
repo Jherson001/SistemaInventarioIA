@@ -36,7 +36,9 @@ const authLimiter = rateLimit({
   message: { error: 'Demasiados intentos. Espera unos minutos.' }
 });
 
-app.get('/health', (req, res) => res.json({ ok: true, mode: 'inventory' }));
+app.get('/health', (req, res) =>
+  res.json({ ok: true, mode: 'inventory', api: 'users-v1' })
+);
 
 app.use('/api/auth', authLimiter, authRoutes);
 app.use('/api/users', require('./routes/userRoutes'));
