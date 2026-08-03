@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { SIDE_MENU_DATA } from "../../utils/data";
 import useAuth from "../../hooks/useAuth";
+import { hasRole, isAdmin, userRoles } from "../../utils/roles";
 
 const SideMenu = ({ activeMenu, onNavigate }) => {
   const { user, logout } = useAuth();
@@ -21,11 +22,27 @@ const SideMenu = ({ activeMenu, onNavigate }) => {
   };
 
   useEffect(() => {
-    if (user) setSideMenuData(SIDE_MENU_DATA);
+    if (!user) return;
+    const roles = userRoles(user);
+    const filtered = SIDE_MENU_DATA.filter((item) => {
+      if (!item.roles || item.roles.length === 0) return true;
+      if (isAdmin(user) && item.path !== "logout") {
+        // admin ve todo
+        return true;
+      }
+      return item.roles.some((r) => roles.includes(r));
+    });
+    setSideMenuData(filtered);
   }, [user]);
 
   const displayName = user?.full_name || user?.name || "Usuario";
-  const isAdmin = (user?.roles || []).includes("admin") || user?.role === "admin";
+  const roleTag = isAdmin(user)
+    ? "Admin"
+    : hasRole(user, "manager")
+      ? "Gerente"
+      : hasRole(user, "cashier")
+        ? "Cajero"
+        : null;
 
   return (
     <aside className="side-menu">
@@ -35,9 +52,9 @@ const SideMenu = ({ activeMenu, onNavigate }) => {
         <div className="mt-3 rounded-xl bg-white/5 border border-white/10 px-3 py-2.5">
           <p className="text-sm font-semibold truncate">{displayName}</p>
           <p className="text-[11px] text-slate-400 truncate">{user?.email || ""}</p>
-          {isAdmin && (
+          {roleTag && (
             <span className="inline-block mt-2 text-[10px] font-bold uppercase tracking-wide bg-teal-500/20 text-teal-200 px-2 py-0.5 rounded">
-              Admin
+              {roleTag}
             </span>
           )}
         </div>

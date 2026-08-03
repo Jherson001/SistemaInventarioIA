@@ -3,17 +3,24 @@ const db = require('../config/db');
 
 function normalizeUser(row) {
   if (!row) return null;
+  const { password_hash, password, ...safe } = row;
   return {
-    ...row,
+    ...safe,
     full_name: row.full_name || row.name || row.email || 'Usuario',
     password_hash: row.password_hash || row.password || '',
-    // Si la columna no existe, SELECT * no la trae → asumimos activo
     is_active: row.is_active === undefined || row.is_active === null ? 1 : Number(row.is_active),
   };
 }
 
+function publicUser(row) {
+  if (!row) return null;
+  const n = normalizeUser(row);
+  delete n.password_hash;
+  delete n.password;
+  return n;
+}
+
 async function findByEmail(email) {
-  // SELECT * evita romper si faltan columnas (BD cloud incompleta)
   const rows = await db.query(
     `SELECT * FROM users
       WHERE LOWER(TRIM(email)) = LOWER(TRIM(?))
@@ -24,12 +31,35 @@ async function findByEmail(email) {
 }
 
 async function create({ full_name, email, password_hash, is_active = 1 }) {
-  const res = await db.query(
-    `INSERT INTO users (full_name, email, password_hash, is_active)
-     VALUES (?, ?, ?, ?)`,
-    [full_name, email, password_hash, is_active]
-  );
-  return findById(res.insertId);
+  const name = full_name || email;
+  // Intento compatible con Aiven (name NOT NULL) y esquema local (full_name)
+  try {
+    const res = await db.query(
+      `INSERT INTO users (full_name, email, password_hash, is_active)
+       VALUES (?, ?, ?, ?)`,
+      [name, email, password_hash, is_active]
+    );
+    return findById(res.insertId);
+  } catch (err) {
+    if (!String(err.message || '').includes('Unknown column') && err.code !== 'ER_NO_DEFAULT_FOR_FIELD') {
+      // probar con name
+    }
+    try {
+      const res = await db.query(
+        `INSERT INTO users (name, full_name, email, password_hash, is_active)
+         VALUES (?, ?, ?, ?, ?)`,
+        [name, name, email, password_hash, is_active]
+      );
+      return findById(res.insertId);
+    } catch (err2) {
+      const res = await db.query(
+        `INSERT INTO users (name, email, password_hash)
+         VALUES (?, ?, ?)`,
+        [name, email, password_hash]
+      );
+      return findById(res.insertId);
+    }
+  }
 }
 
 async function findById(id) {
@@ -37,11 +67,21 @@ async function findById(id) {
   return normalizeUser(rows[0]);
 }
 
+async function listAll() {
+  const rows = await db.query(`SELECT * FROM users ORDER BY id ASC`);
+  const out = [];
+  for (const row of rows || []) {
+    const u = publicUser(row);
+    u.roles = await getRoles(u.id);
+    out.push(u);
+  }
+  return out;
+}
+
 async function setLastLogin(id) {
   try {
     await db.query(`UPDATE users SET last_login_at = NOW() WHERE id = ?`, [id]);
   } catch (err) {
-    // Columna puede no existir aún en cloud
     console.warn('[users] setLastLogin omitido:', err.message);
   }
 }
@@ -55,11 +95,10 @@ async function getRoles(userId) {
         WHERE ur.user_id = ?`,
       [userId]
     );
-    const roles = [...new Set(rows.map((r) => r.name).filter(Boolean))];
-    return roles.length ? roles : ['admin'];
+    return [...new Set(rows.map((r) => r.name).filter(Boolean))];
   } catch (err) {
-    console.warn('[users] getRoles fallback admin:', err.message);
-    return ['admin'];
+    console.warn('[users] getRoles:', err.message);
+    return [];
   }
 }
 
@@ -73,10 +112,28 @@ async function assignRoleByName(userId, roleName) {
   await db.query(`INSERT IGNORE INTO user_roles (user_id, role_id) VALUES (?, ?)`, [userId, roleId]);
 }
 
+async function setActive(id, is_active) {
+  try {
+    await db.query(`UPDATE users SET is_active = ? WHERE id = ?`, [is_active ? 1 : 0, id]);
+  } catch (err) {
+    throw err;
+  }
+  return findById(id);
+}
+
 const getByEmail = findByEmail;
 const touchLogin = setLastLogin;
 
 module.exports = {
-  findByEmail, create, assignRoleByName, setLastLogin, findById, getRoles,
-  getByEmail, touchLogin,
+  findByEmail,
+  create,
+  assignRoleByName,
+  setLastLogin,
+  findById,
+  getRoles,
+  listAll,
+  setActive,
+  publicUser,
+  getByEmail,
+  touchLogin,
 };

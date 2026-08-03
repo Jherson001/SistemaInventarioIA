@@ -26,8 +26,14 @@ const AuthController = {
       await User.assignRoleByName(created.id, role);
 
       const roles = await User.getRoles(created.id);
-      const token = signToken(created, roles);
-      res.status(201).json({ token, user: { ...created, roles } });
+      res.status(201).json({
+        user: {
+          id: created.id,
+          full_name: created.full_name,
+          email: created.email,
+          roles,
+        },
+      });
     } catch (err) { next(err); }
   },
 
@@ -78,7 +84,15 @@ const AuthController = {
     try {
       const me = await User.findById(req.user.sub);
       const roles = await User.getRoles(req.user.sub);
-      res.json({ user: { ...me, roles } });
+      res.json({
+        user: {
+          id: me.id,
+          full_name: me.full_name,
+          email: me.email,
+          is_active: me.is_active,
+          roles,
+        },
+      });
     } catch (err) { next(err); }
   }
 };

@@ -23,7 +23,7 @@ const app = express();
 app.use(helmet({ crossOriginResourcePolicy: { policy: 'cross-origin' } }));
 app.use(cors({
   origin: process.env.CORS_ORIGIN || '*',
-  methods: ['GET', 'POST', 'PUT', 'DELETE'],
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE'],
   allowedHeaders: ['Content-Type', 'Authorization']
 }));
 app.use(express.json({ limit: '1mb' }));
@@ -39,6 +39,7 @@ const authLimiter = rateLimit({
 app.get('/health', (req, res) => res.json({ ok: true, mode: 'inventory' }));
 
 app.use('/api/auth', authLimiter, authRoutes);
+app.use('/api/users', require('./routes/userRoutes'));
 app.use('/api/products', productRoutes);
 app.use('/api/stock-moves', stockMoveRoutes);
 app.use('/api/sales', saleRoutes);

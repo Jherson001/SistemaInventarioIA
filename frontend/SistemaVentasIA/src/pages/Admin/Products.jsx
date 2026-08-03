@@ -307,7 +307,7 @@ export default function Products() {
           </p>
         )}
 
-        {canEdit && (
+      {canEdit && (
           <label className="flex items-center gap-2 text-xs sm:text-sm text-slate-600 px-0.5">
             <input
               type="checkbox"

@@ -2,6 +2,8 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import useAuth from "../hooks/useAuth";
 import AuthLayout from "../components/layouts/AuthLayout";
+import { homePathForUser } from "../utils/roles";
+import { getUser } from "../utils/storage";
 
 export default function Login() {
   const nav = useNavigate();
@@ -15,7 +17,8 @@ export default function Login() {
     setErr("");
     try {
       await login(email, password);
-      nav("/admin/dashboard");
+      const u = getUser();
+      nav(homePathForUser(u));
     } catch (e) {
       setErr(e.message);
     }

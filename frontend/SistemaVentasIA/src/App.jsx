@@ -6,8 +6,22 @@ import Categories from "./pages/Admin/Categories";
 import Dashboard from "./pages/Admin/Dashboard";
 import StockMoves from "./pages/Admin/StockMoves";
 import QuickStock from "./pages/Admin/QuickStock";
+import Users from "./pages/Admin/Users";
 import LowRotationPage from "./pages/LowRotationPage";
 import Insights from "./pages/Admin/Insights";
+import useAuth from "./hooks/useAuth";
+import { homePathForUser, isCashierOnly } from "./utils/roles";
+
+function CashierHome() {
+  const { user } = useAuth();
+  return <Navigate to={homePathForUser(user)} replace />;
+}
+
+function ManagerOnly({ children }) {
+  const { user } = useAuth();
+  if (isCashierOnly(user)) return <Navigate to="/admin/rapido" replace />;
+  return children;
+}
 
 const App = () => {
   return (
@@ -15,15 +29,58 @@ const App = () => {
       <Route path="/login" element={<Login />} />
 
       <Route element={<ProtectedRoute />}>
-        <Route path="/" element={<Navigate to="/admin/dashboard" replace />} />
-        <Route path="/admin/dashboard" element={<Dashboard />} />
-        <Route path="/admin/insights" element={<Insights />} />
-        <Route path="/admin/stock-moves" element={<StockMoves />} />
+        <Route path="/" element={<CashierHome />} />
+        <Route
+          path="/admin/dashboard"
+          element={
+            <ManagerOnly>
+              <Dashboard />
+            </ManagerOnly>
+          }
+        />
+        <Route
+          path="/admin/insights"
+          element={
+            <ManagerOnly>
+              <Insights />
+            </ManagerOnly>
+          }
+        />
+        <Route
+          path="/admin/stock-moves"
+          element={
+            <ManagerOnly>
+              <StockMoves />
+            </ManagerOnly>
+          }
+        />
         <Route path="/admin/rapido" element={<QuickStock />} />
-        <Route path="/admin/products" element={<Products />} />
-        <Route path="/admin/categorias" element={<Categories />} />
+        <Route
+          path="/admin/products"
+          element={
+            <ManagerOnly>
+              <Products />
+            </ManagerOnly>
+          }
+        />
+        <Route
+          path="/admin/categorias"
+          element={
+            <ManagerOnly>
+              <Categories />
+            </ManagerOnly>
+          }
+        />
         <Route path="/admin/categories" element={<Navigate to="/admin/categorias" replace />} />
-        <Route path="/admin/low-rotation" element={<LowRotationPage />} />
+        <Route
+          path="/admin/low-rotation"
+          element={
+            <ManagerOnly>
+              <LowRotationPage />
+            </ManagerOnly>
+          }
+        />
+        <Route path="/admin/users" element={<Users />} />
 
         <Route path="/admin/pos" element={<Navigate to="/admin/dashboard" replace />} />
         <Route path="/admin/sales" element={<Navigate to="/admin/dashboard" replace />} />
