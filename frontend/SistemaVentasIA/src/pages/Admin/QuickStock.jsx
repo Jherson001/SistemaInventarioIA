@@ -162,7 +162,8 @@ export default function QuickStock() {
         <div>
           <h1 className="page-title">Entrada / Salida rápida</h1>
           <p className="page-subtitle">
-            Escanea o busca → se registra al toque. Cobrar sigue en el POS de Sunat.
+            Usa el <strong>escáner USB</strong> de la tienda (clic en la caja y dispara) o la cámara del celular.
+            Cobrar sigue en el POS de Sunat.
           </p>
         </div>
 
@@ -205,7 +206,7 @@ export default function QuickStock() {
             <input
               ref={inputRef}
               className="input !text-lg !py-3"
-              placeholder="Código, SKU o nombre…"
+              placeholder="Apunta el escáner aquí o escribe el código…"
               value={q}
               disabled={saving || loading}
               onChange={(e) => {
@@ -213,12 +214,14 @@ export default function QuickStock() {
                 setErr("");
               }}
               autoComplete="off"
+              autoFocus
             />
             <button
               type="button"
               className="btn shrink-0"
               onClick={() => setScanOpen(true)}
               disabled={saving}
+              title="Solo si no tienes escáner USB"
             >
               Cámara
             </button>
