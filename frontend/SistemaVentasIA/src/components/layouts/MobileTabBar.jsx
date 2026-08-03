@@ -2,22 +2,18 @@ import { NavLink } from "react-router-dom";
 import {
   LuHouse,
   LuPackage,
+  LuZap,
   LuArrowLeftRight,
-  LuTags,
   LuMenu,
 } from "react-icons/lu";
 
 const TABS = [
   { to: "/admin/dashboard", label: "Inicio", icon: LuHouse },
+  { to: "/admin/rapido", label: "Rápido", icon: LuZap },
   { to: "/admin/products", label: "Productos", icon: LuPackage },
-  { to: "/admin/stock-moves", label: "Stock", icon: LuArrowLeftRight },
-  { to: "/admin/categorias", label: "Categorías", icon: LuTags },
+  { to: "/admin/stock-moves", label: "Histórico", icon: LuArrowLeftRight },
 ];
 
-/**
- * Barra inferior solo en celular/tablet (oculta en desktop con CSS).
- * onOpenMenu abre el drawer con el resto de opciones.
- */
 export default function MobileTabBar({ onOpenMenu }) {
   return (
     <nav className="mobile-tabbar" aria-label="Navegación principal">

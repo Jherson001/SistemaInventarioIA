@@ -5,6 +5,7 @@ const { authRequired, requireRoles } = require('../middlewares/auth');
 const router = express.Router();
 
 router.get('/', authRequired, ctrl.list);
-router.post('/', authRequired, requireRoles('admin', 'manager'), ctrl.create);
+// cashier puede registrar entradas/salidas; ajuste queda restringido en el controller
+router.post('/', authRequired, requireRoles('admin', 'manager', 'cashier'), ctrl.create);
 
 module.exports = router;

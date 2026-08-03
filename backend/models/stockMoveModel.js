@@ -23,7 +23,7 @@ const StockMoveModel = {
     return !!rows[0];
   },
 
-  async create({ product_id, move_type, quantity, reference, user_id, note }) {
+  async create({ product_id, move_type, quantity, reference, user_id, note, allowNegative = false }) {
     const conn = await getConnection();
     const q = (sql, params) =>
       new Promise((resolve, reject) => {
@@ -39,7 +39,6 @@ const StockMoveModel = {
         [product_id, move_type, quantity, reference, user_id, note || null]
       );
 
-      // Bloqueo de fila para evitar stock inconsistente
       const locked = await q(`SELECT stock FROM products WHERE id = ? FOR UPDATE`, [product_id]);
       const current = Number(locked[0]?.stock ?? 0);
       let next = current;
@@ -48,7 +47,7 @@ const StockMoveModel = {
       else if (move_type === 'OUT') next = current - Math.abs(quantity);
       else if (move_type === 'ADJUST') next = current + quantity;
 
-      if (next < 0) {
+      if (next < 0 && !allowNegative) {
         throw Object.assign(new Error('Stock insuficiente / ajuste inválido'), { status: 409 });
       }
 

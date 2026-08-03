@@ -25,6 +25,12 @@ const StockMoveController = {
         return res.status(404).json({ error: 'Producto no encontrado' });
       }
 
+      const roles = req.user?.roles || [];
+      const canAdjust = roles.includes('admin') || roles.includes('manager');
+      if (move_type === 'ADJUST' && !canAdjust) {
+        return res.status(403).json({ error: 'Solo admin/manager pueden hacer ajustes' });
+      }
+
       let qty = Number(quantity);
       if (!Number.isFinite(qty) || qty === 0) {
         return res.status(400).json({ error: 'quantity debe ser un número distinto de 0' });
@@ -37,12 +43,7 @@ const StockMoveController = {
 
       const current = await StockMove.currentStock(product_id);
 
-      if (move_type === 'OUT' && current < qty) {
-        return res.status(409).json({
-          error: `Stock insuficiente. Disponible: ${current}, solicitado: ${qty}`
-        });
-      }
-
+      // OUT puede quedar negativo al inicio (stock aún no contado); ADJUST no
       if (move_type === 'ADJUST' && current + qty < 0) {
         return res.status(409).json({ error: 'Ajuste inválido: dejaría stock negativo' });
       }
@@ -53,9 +54,14 @@ const StockMoveController = {
         quantity: qty,
         reference: reference || null,
         user_id: req.user?.sub || null,
-        note: note || null
+        note: note || null,
+        allowNegative: move_type === 'OUT',
       });
-      res.status(201).json(created);
+      const warning =
+        move_type === 'OUT' && current < qty
+          ? `Stock quedó bajo/negativo (había ${current})`
+          : null;
+      res.status(201).json(warning ? { ...created, warning } : created);
     } catch (err) { next(err); }
   }
 };

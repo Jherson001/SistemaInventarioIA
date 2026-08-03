@@ -86,11 +86,11 @@ export default function Dashboard() {
             </p>
           </div>
           <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-            <Link to="/admin/products" className="btn-primary w-full sm:w-auto">
-              Productos
+            <Link to="/admin/rapido" className="btn-primary w-full sm:w-auto">
+              Salida rápida
             </Link>
             <Link to="/admin/stock-moves" className="btn-accent w-full sm:w-auto">
-              Movimiento
+              Movimientos
             </Link>
           </div>
         </div>

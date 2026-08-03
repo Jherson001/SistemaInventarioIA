@@ -6,6 +6,7 @@ import {
   LuArrowLeftRight,
   LuChartNoAxesCombined,
   LuTriangleAlert,
+  LuZap,
 } from "react-icons/lu";
 
 export const SIDE_MENU_DATA = [
@@ -17,36 +18,42 @@ export const SIDE_MENU_DATA = [
   },
   {
     id: "02",
+    label: "Rápido",
+    icon: LuZap,
+    path: "/admin/rapido",
+  },
+  {
+    id: "03",
     label: "Productos",
     icon: LuPackage,
     path: "/admin/products",
   },
   {
-    id: "03",
+    id: "04",
     label: "Movimientos",
     icon: LuArrowLeftRight,
     path: "/admin/stock-moves",
   },
   {
-    id: "04",
+    id: "05",
     label: "Categorías",
     icon: LuTags,
     path: "/admin/categorias",
   },
   {
-    id: "05",
+    id: "06",
     label: "Análisis",
     icon: LuChartNoAxesCombined,
     path: "/admin/insights",
   },
   {
-    id: "06",
+    id: "07",
     label: "Baja rotación",
     icon: LuTriangleAlert,
     path: "/admin/low-rotation",
   },
   {
-    id: "07",
+    id: "08",
     label: "Salir",
     icon: LuLogOut,
     path: "logout",
