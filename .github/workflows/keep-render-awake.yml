@@ -1,14 +1,16 @@
 name: Keep Render awake
 
 # Evita que el backend free de Render se duerma.
+# Cada 25 min (menos carga en runners free de GitHub).
 on:
   schedule:
-    - cron: "*/12 * * * *"
+    - cron: "*/25 * * * *"
   workflow_dispatch:
 
 jobs:
   ping:
     runs-on: ubuntu-latest
+    timeout-minutes: 5
     steps:
       - name: Ping health
         run: |
